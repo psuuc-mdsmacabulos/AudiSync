@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "es2016",                                 
+    "module": "ESNext",
+    "moduleResolution": "node",                               
+    "experimentalDecorators": true,                     
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,                       
+    "esModuleInterop": true,                             
+    "forceConsistentCasingInFileNames": true,            
+    "strict": true,                                      
+    "skipLibCheck": true,                                
+    "skipDefaultLibCheck": true,                         
+    "baseUrl": ".",                                      
+    "resolveJsonModule": true,                           
+    "noUnusedLocals": true,                              
+    "noUnusedParameters": true,                          
+    "noImplicitReturns": true,                           
+    "noFallthroughCasesInSwitch": true,                  
+    "allowJs": false,                                    
+    "checkJs": false,                                    
+    "declaration": true,                                 
+    "sourceMap": true,                                   
+    "outDir": "./dist",
+    "declarationDir": "./dist/types",                           
+    "removeComments": true
+  },
+  "include": [
+    "config/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
