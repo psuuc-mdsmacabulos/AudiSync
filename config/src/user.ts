@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
+import Cart from "../src/cart"; 
 
 @Entity("users")
 class User {
@@ -33,6 +34,9 @@ class User {
   updateTimestamp() {
     this.updated_at = new Date();
   }
+
+  @OneToMany(() => Cart, (cart) => cart.staff_name)
+  carts!: Cart[];
 }
 
 export default User;

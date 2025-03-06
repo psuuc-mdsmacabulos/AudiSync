@@ -1,3 +1,4 @@
+import Cart from "../src/cart";
 declare class User {
     id: number;
     first_name: string;
@@ -9,5 +10,6 @@ declare class User {
     updated_at: Date;
     deleted_at: Date | null;
     updateTimestamp(): void;
+    carts: Cart[];
 }
 export default User;

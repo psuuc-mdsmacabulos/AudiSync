@@ -8,16 +8,19 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from "typeorm";
-import Product from "../../dist/products.js";
+import Product from "./products.js";
 let Order = class Order {
+    constructor() {
+        this.item = null;
+    }
 };
 __decorate([
     PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
 ], Order.prototype, "id", void 0);
 __decorate([
-    ManyToOne(() => Product, (product) => product.order_id),
-    __metadata("design:type", Product)
+    ManyToOne(() => Product, (product) => product.orders, { nullable: false }),
+    __metadata("design:type", Object)
 ], Order.prototype, "item", void 0);
 __decorate([
     Column({ type: "varchar", length: 50 }),
@@ -25,8 +28,12 @@ __decorate([
 ], Order.prototype, "order_type", void 0);
 __decorate([
     Column({ type: "varchar", length: 255, nullable: true }),
-    __metadata("design:type", Object)
+    __metadata("design:type", String)
 ], Order.prototype, "customer_name", void 0);
+__decorate([
+    Column({ type: "varchar", length: 255 }),
+    __metadata("design:type", String)
+], Order.prototype, "staff_name", void 0);
 __decorate([
     Column({ type: "varchar", length: 20 }),
     __metadata("design:type", String)

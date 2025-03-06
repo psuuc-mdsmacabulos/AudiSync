@@ -1,40 +1,43 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from "typeorm";
-import Product from "../../dist/products.js";
+import Product from "../src/products";
 
 @Entity("orders")
 class Order {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => Product, (product: Product) => product.order_id)
-    item!: Product;
+    @ManyToOne(() => Product, (product) => product.orders, { nullable: false })
+    item: Product | null = null;
 
     @Column({ type: "varchar", length: 50 })
-    order_type!: string;  // "Dine-in", "Takeout", etc.
+    order_type!: string;
 
     @Column({ type: "varchar", length: 255, nullable: true })
-    customer_name!: string | null;
+    customer_name?: string;
+
+    @Column({ type: "varchar", length: 255 })
+    staff_name!: string;
 
     @Column({ type: "varchar", length: 20 })
-    discount_type!: string; // "percentage" or "fixed"
+    discount_type!: string;
 
     @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
-    discount_value!: number; // E.g., 10 (for 10% discount) or 100 (for PHP 100 off)
+    discount_value!: number;
 
     @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
-    discount_amount!: number; // Computed discount amount
+    discount_amount!: number;
 
     @Column({ type: "decimal", precision: 10, scale: 2 })
-    final_price!: number; // Total after discount
+    final_price!: number;
 
     @Column({ type: "varchar", length: 50 })
-    payment_method!: string; // "Cash", "Credit Card"
+    payment_method!: string;
 
     @Column({ type: "decimal", precision: 10, scale: 2 })
     amount_paid!: number;
 
     @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
-    change!: number; // Computed as amount_paid - final_price
+    change!: number;
 
     @CreateDateColumn()
     created_at!: Date;

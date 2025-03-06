@@ -1,9 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
+import Cart from "../src/cart"; 
+import Order from "../src/order";  // Import the Order entity
 
 @Entity("products")
 class Product {
   @PrimaryGeneratedColumn()
-  order_id!: number;
+  id!: number;
 
   @Column({ type: "varchar", length: 255 })
   item!: string;
@@ -30,6 +32,12 @@ class Product {
   updateTimestamp() {
     this.created_at = new Date();
   }
+
+  @OneToMany(() => Cart, (cart) => cart.product)
+  carts!: Cart[];
+
+  @OneToMany(() => Order, (order) => order.item)
+  orders!: Order[];  
 }
 
 export default Product;

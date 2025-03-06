@@ -1,24 +1,27 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import User from "../dist/user.js";  
-import Sale from "../dist/sale.js";  
 import dotenv from "dotenv";
+import User from "../dist/user.js"; 
+import Cart from "../dist/cart.js";  
+import Product from "../dist/products.js"; 
+import Order from "../dist/order.js"; 
+
 dotenv.config();
 
 export const AppDataSource = new DataSource({
-    type: "postgres",
+    type: "mysql",
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
+    port: parseInt(process.env.DB_PORT || '5432'), 
     username: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    entities: [User, Sale],
-    synchronize: true, 
+    entities: [User, Cart, Product, Order],  
+    synchronize: true,  
 });
 
 AppDataSource.initialize()
     .then(() => {
-        console.log("PostgreSQL connected successfully!");
+        console.log("MySQL connected successfully!");
     })
     .catch((err) => {
         console.error("Error connecting to the database:", err);

@@ -1,5 +1,7 @@
+import Cart from "../src/cart";
+import Order from "../src/order";
 declare class Product {
-    order_id: number;
+    id: number;
     item: string;
     description?: string;
     price: number;
@@ -8,5 +10,7 @@ declare class Product {
     created_at: Date;
     deleted_at: Date | null;
     updateTimestamp(): void;
+    carts: Cart[];
+    orders: Order[];
 }
 export default Product;

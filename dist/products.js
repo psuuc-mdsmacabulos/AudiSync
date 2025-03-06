@@ -7,7 +7,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
+import Cart from "./cart.js";
+import Order from "./order.js";
 let Product = class Product {
     updateTimestamp() {
         this.created_at = new Date();
@@ -16,7 +18,7 @@ let Product = class Product {
 __decorate([
     PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
-], Product.prototype, "order_id", void 0);
+], Product.prototype, "id", void 0);
 __decorate([
     Column({ type: "varchar", length: 255 }),
     __metadata("design:type", String)
@@ -51,6 +53,14 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], Product.prototype, "updateTimestamp", null);
+__decorate([
+    OneToMany(() => Cart, (cart) => cart.product),
+    __metadata("design:type", Array)
+], Product.prototype, "carts", void 0);
+__decorate([
+    OneToMany(() => Order, (order) => order.item),
+    __metadata("design:type", Array)
+], Product.prototype, "orders", void 0);
 Product = __decorate([
     Entity("products")
 ], Product);
