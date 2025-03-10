@@ -39,6 +39,9 @@ class Order {
     @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
     change!: number;
 
+    @Column({ type: "varchar", length: 20, default: "pending" })
+    status!: string; 
+
     @CreateDateColumn()
     created_at!: Date;
 }

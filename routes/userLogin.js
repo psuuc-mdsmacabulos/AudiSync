@@ -8,25 +8,25 @@ import dotenv from "dotenv";
 dotenv.config();
 const router = Router();
 
-// 🔹 Generate Access Token (1-hour expiry)
+// Generate Access Token 
 const generateAccessToken = (user) => {
     return jwt.sign(
         { userId: user.id, first_name: user.first_name, last_name: user.last_name, role: user.role },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" } // ⏳ 1 hour
+        { expiresIn: "1h" } 
     );
 };
 
-// 🔹 Generate Refresh Token (7-day expiry)
+// Generate Refresh Token 
 const generateRefreshToken = (user) => {
     return jwt.sign(
         { userId: user.id },
         process.env.REFRESH_SECRET,
-        { expiresIn: "7d" } // ⏳ 7 days
+        { expiresIn: "7d" } 
     );
 };
 
-// 🔹 USER LOGIN ROUTE (Returns Access Token Only)
+// USER LOGIN ROUTE 
 router.post("/login", async (req, res) => {
     const { first_name, last_name, password } = req.body;
 
@@ -47,13 +47,12 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
-        // Generate only the access token
         const accessToken = generateAccessToken(user);
 
         res.json({
             message: "Login successful",
             accessToken,
-            expiresIn: 3600, // 1 hour
+            expiresIn: 3600, 
             user: {
                 id: user.id,
                 name: `${user.first_name} ${user.last_name}`,
@@ -66,9 +65,9 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// 🔹 REFRESH TOKEN ROUTE (Only Generates a New Refresh Token)
+// REFRESH TOKEN ROUTE 
 router.post("/refresh", async (req, res) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
     if (!refreshToken) {
         return res.status(401).json({ message: "Refresh token is required" });
@@ -77,7 +76,6 @@ router.post("/refresh", async (req, res) => {
     try {
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
 
-        // Get user by ID
         const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOne({ where: { id: decoded.userId } });
 
@@ -85,21 +83,24 @@ router.post("/refresh", async (req, res) => {
             return res.status(401).json({ message: "User not found" });
         }
 
-        // Generate a new refresh token (ONLY)
+        // Generate a new access token
+        const newAccessToken = generateAccessToken(user);
+
+        // Generate a new refresh token and store in cookie
         const newRefreshToken = generateRefreshToken(user);
 
-        // Store new refresh token in HTTP-only cookie
         res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // ⏳ 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
 
         res.json({
-            message: "New refresh token generated",
-            refreshToken: newRefreshToken,
-            refreshTokenExpiresIn: 604800, // 7 days in seconds
+            message: "Token refreshed successfully",
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken, 
+            expiresIn: 3600, 
         });
     } catch (err) {
         console.error(err);
@@ -107,7 +108,7 @@ router.post("/refresh", async (req, res) => {
     }
 });
 
-// 🔹 LOGOUT ROUTE (Clears Refresh Token)
+// LOGOUT ROUTE 
 router.post("/logout", (req, res) => {
     res.clearCookie("refreshToken");
     res.json({ message: "Logged out successfully" });

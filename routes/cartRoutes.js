@@ -43,7 +43,7 @@ router.post("/add", async (req, res) => {
 
         // Deduct quantity from product stock
         product.quantity -= quantity;
-        await productRepository.save(product); // Save updated product quantity
+        await productRepository.save(product); 
 
         // Create cart item
         const newCartItem = cartRepository.create({
@@ -127,7 +127,7 @@ router.post("/update", authMiddleware, async (req, res) => {
 // Checkout - Convert Cart to Order
 router.post("/checkout", authMiddleware, async (req, res) => {
     const { order_type, customer_name, discount_type, discount_value, payment_method, amount_paid } = req.body;
-    const user = req.user; // Authenticated user
+    const user = req.user;
 
     try {
         const cartRepository = AppDataSource.getRepository(Cart);

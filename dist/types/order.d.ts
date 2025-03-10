@@ -12,6 +12,7 @@ declare class Order {
     payment_method: string;
     amount_paid: number;
     change: number;
+    status: string;
     created_at: Date;
 }
 export default Order;

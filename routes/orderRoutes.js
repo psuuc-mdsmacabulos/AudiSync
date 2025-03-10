@@ -39,4 +39,29 @@ router.get("/:id", authMiddleware, async (req, res) => {
     }
 });
 
+router.patch("/:id/status", authMiddleware, async (req, res) => {
+    const orderId = req.params.id;
+    const { status } = req.body;
+
+    if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+    }
+
+    try {
+        const orderRepository = AppDataSource.getRepository(Order);
+        const order = await orderRepository.findOne({ where: { id: orderId } });
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        await orderRepository.update(orderId, { status });
+
+        res.json({ message: "Order status updated successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error updating order status" });
+    }
+});
+
 export default router;

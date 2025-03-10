@@ -63,6 +63,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Order.prototype, "change", void 0);
 __decorate([
+    Column({ type: "varchar", length: 20, default: "pending" }),
+    __metadata("design:type", String)
+], Order.prototype, "status", void 0);
+__decorate([
     CreateDateColumn(),
     __metadata("design:type", Date)
 ], Order.prototype, "created_at", void 0);
