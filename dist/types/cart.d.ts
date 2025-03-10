@@ -1,8 +1,8 @@
-import Product from "../src/products";
-declare let User: typeof import("../src/user").default;
+import User from "./user";
+import Product from "./products";
 declare class Cart {
     id: number;
-    staff_name: typeof User;
+    user: User | null;
     product: Product;
     quantity: number;
     price: number;

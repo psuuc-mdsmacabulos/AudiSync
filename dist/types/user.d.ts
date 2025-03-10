@@ -1,4 +1,4 @@
-import Cart from "../src/cart";
+import Cart from "./cart";
 declare class User {
     id: number;
     first_name: string;

@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
-import Cart from "../src/cart"; 
-import Order from "../src/order";  // Import the Order entity
+import Cart from "./cart"; 
+import Order from "./order";  // Import the Order entity
 
 @Entity("products")
 class Product {

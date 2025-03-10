@@ -1,4 +1,4 @@
-import Product from "../src/products";
+import Product from "./products";
 declare class Order {
     id: number;
     item: Product | null;

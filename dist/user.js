@@ -57,7 +57,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], User.prototype, "updateTimestamp", null);
 __decorate([
-    OneToMany(() => Cart, (cart) => cart.staff_name),
+    OneToMany(() => Cart, (cart) => cart.user),
     __metadata("design:type", Array)
 ], User.prototype, "carts", void 0);
 User = __decorate([

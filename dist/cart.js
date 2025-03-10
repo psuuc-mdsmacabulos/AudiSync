@@ -8,8 +8,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import User from "./user.js";
 import Product from "./products.js";
-let User;
 let Cart = class Cart {
 };
 __decorate([
@@ -17,9 +17,9 @@ __decorate([
     __metadata("design:type", Number)
 ], Cart.prototype, "id", void 0);
 __decorate([
-    ManyToOne(() => User, (user) => user.carts),
+    ManyToOne(() => User, (user) => user.carts, { nullable: true }),
     __metadata("design:type", Object)
-], Cart.prototype, "staff_name", void 0);
+], Cart.prototype, "user", void 0);
 __decorate([
     ManyToOne(() => Product, (product) => product.carts),
     __metadata("design:type", Product)
@@ -47,8 +47,5 @@ __decorate([
 Cart = __decorate([
     Entity()
 ], Cart);
-import("./user.js").then((module) => {
-    User = module.default;
-});
 export default Cart;
 //# sourceMappingURL=cart.js.map

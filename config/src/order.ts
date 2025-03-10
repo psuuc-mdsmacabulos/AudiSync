@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from "typeorm";
-import Product from "../src/products";
+import Product from "./products";
 
 @Entity("orders")
 class Order {

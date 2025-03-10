@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
-import Cart from "../src/cart"; 
+import Cart from "./cart"; 
 
 @Entity("users")
 class User {
@@ -35,7 +35,7 @@ class User {
     this.updated_at = new Date();
   }
 
-  @OneToMany(() => Cart, (cart) => cart.staff_name)
+  @OneToMany(() => Cart, (cart) => cart.user)
   carts!: Cart[];
 }
 

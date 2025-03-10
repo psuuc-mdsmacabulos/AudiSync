@@ -1,5 +1,5 @@
-import Cart from "../src/cart";
-import Order from "../src/order";
+import Cart from "./cart";
+import Order from "./order";
 declare class Product {
     id: number;
     item: string;
