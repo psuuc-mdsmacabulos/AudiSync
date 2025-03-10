@@ -21,22 +21,31 @@ router.post("/add", async (req, res) => {
         const productRepository = AppDataSource.getRepository(Product);
         const cartRepository = AppDataSource.getRepository(Cart);
 
-        // Check if user exists
+        //   Check if user exists
         const user = await userRepository.findOne({ where: { id: userId } });
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Get product price
+        // Check if product exists
         const product = await productRepository.findOne({ where: { id: productId } });
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
         }
 
+        // Check if product has enough stock
+        if (product.quantity < quantity) {
+            return res.status(400).json({ message: "Not enough stock available" });
+        }
+
         const price = parseFloat(product.price);
         const total_price = price * quantity;
 
-        // Create cart item 
+        // Deduct quantity from product stock
+        product.quantity -= quantity;
+        await productRepository.save(product); // Save updated product quantity
+
+        // Create cart item
         const newCartItem = cartRepository.create({
             user,  
             product,

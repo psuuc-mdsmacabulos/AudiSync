@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Create a new product
 router.post("/", async (req, res) => {
-    const { item, description, price, stock, image } = req.body;
+    const { item, description, price, quantity, image } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
@@ -15,7 +15,7 @@ router.post("/", async (req, res) => {
         product.item = item;
         product.description = description;
         product.price = price;
-        product.stock = stock;
+        product.quantity = quantity;
         product.image = image;
 
         await productRepository.save(product);
