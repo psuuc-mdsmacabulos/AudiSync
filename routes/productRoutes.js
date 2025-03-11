@@ -7,16 +7,17 @@ const router = express.Router();
 
 // Create a new product
 router.post("/", async (req, res) => {
-    const { item, description, price, quantity, image } = req.body;
+    const { name, description, price, quantity, image, category } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const product = new Product();
 
-        product.item = item;
+        product.name = name;
         product.description = description;
         product.price = price;
         product.quantity = quantity;
+        product.category = category;
         product.image = image;
 
         await productRepository.save(product);
@@ -70,6 +71,27 @@ router.get("/", async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error fetching products" });
+    }
+});
+
+// Get products by category
+router.get("/:category", async (req, res) => {
+    const { category } = req.params;
+
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const products = await productRepository.find({
+            where: { category, deleted_at: null }
+        });
+
+        if (products.length === 0) {
+            return res.status(404).json({ message: "No products found in this category" });
+        }
+
+        res.json(products);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching products by category" });
     }
 });
 

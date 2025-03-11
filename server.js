@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(cookieParser());
 
-app.use("/api/", createUser);
+app.use("/api", createUser);
 app.use("/api/auth", userRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);

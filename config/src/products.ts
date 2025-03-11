@@ -8,7 +8,10 @@ class Product {
   id!: number;
 
   @Column({ type: "varchar", length: 255 })
-  item!: string;
+  name!: string;
+
+  @Column({ type: "varchar", length: 255 })
+  category!: string;
 
   @Column({ type: "text", nullable: true })
   description?: string;

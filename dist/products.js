@@ -22,7 +22,11 @@ __decorate([
 __decorate([
     Column({ type: "varchar", length: 255 }),
     __metadata("design:type", String)
-], Product.prototype, "item", void 0);
+], Product.prototype, "name", void 0);
+__decorate([
+    Column({ type: "varchar", length: 255 }),
+    __metadata("design:type", String)
+], Product.prototype, "category", void 0);
 __decorate([
     Column({ type: "text", nullable: true }),
     __metadata("design:type", String)
