@@ -28,15 +28,15 @@ const generateRefreshToken = (user) => {
 
 // USER LOGIN ROUTE 
 router.post("/login", async (req, res) => {
-    const { first_name, last_name, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!first_name || !last_name || !password) {
-        return res.status(400).json({ message: "First name, last name, and password are required" });
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
     }
 
     try {
         const userRepository = AppDataSource.getRepository(User);
-        const user = await userRepository.findOne({ where: { first_name, last_name } });
+        const user = await userRepository.findOne({ where: { email } });
 
         if (!user) {
             return res.status(400).json({ message: "Invalid credentials" });
@@ -56,6 +56,7 @@ router.post("/login", async (req, res) => {
             user: {
                 id: user.id,
                 name: `${user.first_name} ${user.last_name}`,
+                email: user.email,
                 role: user.role,
             },
         });
@@ -100,7 +101,7 @@ router.post("/refresh", async (req, res) => {
             message: "Token refreshed successfully",
             accessToken: newAccessToken,
             refreshToken: newRefreshToken, 
-            expiresIn: 3600, 
+            expiresIn: "7d", 
         });
     } catch (err) {
         console.error(err);

@@ -12,7 +12,7 @@ import Cart from "./cart.js";
 import Order from "./order.js";
 let Product = class Product {
     updateTimestamp() {
-        this.created_at = new Date();
+        this.updated_at = new Date();
     }
 };
 __decorate([
@@ -40,6 +40,14 @@ __decorate([
     __metadata("design:type", String)
 ], Product.prototype, "image", void 0);
 __decorate([
+    Column({ nullable: true, type: "varchar", length: 255 }),
+    __metadata("design:type", String)
+], Product.prototype, "updated_by", void 0);
+__decorate([
+    Column({ type: "timestamp", nullable: true }),
+    __metadata("design:type", Object)
+], Product.prototype, "updated_at", void 0);
+__decorate([
     Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" }),
     __metadata("design:type", Date)
 ], Product.prototype, "created_at", void 0);
@@ -47,6 +55,10 @@ __decorate([
     Column({ type: "timestamp", nullable: true }),
     __metadata("design:type", Object)
 ], Product.prototype, "deleted_at", void 0);
+__decorate([
+    Column({ nullable: true, type: "varchar", length: 255 }),
+    __metadata("design:type", Object)
+], Product.prototype, "deleted_by", void 0);
 __decorate([
     BeforeUpdate(),
     __metadata("design:type", Function),

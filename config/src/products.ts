@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
 import Cart from "./cart"; 
-import Order from "./order";  // Import the Order entity
+import Order from "./order";  
 
 @Entity("products")
 class Product {
@@ -22,15 +22,23 @@ class Product {
   @Column({ type: "varchar", length: 255, nullable: true })
   image?: string;
 
+  @Column({ nullable: true, type: "varchar", length: 255 }) 
+  updated_by!: string;  
+
+  @Column({ type: "timestamp", nullable: true })
+  updated_at!: Date | null;  
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
   created_at!: Date;
 
   @Column({ type: "timestamp", nullable: true })
   deleted_at!: Date | null;
 
+  @Column({ nullable: true, type: "varchar", length: 255 }) 
+  deleted_by!: string | null;
+
   @BeforeUpdate()
   updateTimestamp() {
-    this.created_at = new Date();
+    this.updated_at = new Date(); 
   }
 
   @OneToMany(() => Cart, (cart) => cart.product)

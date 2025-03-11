@@ -6,6 +6,9 @@ class User {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Column({ type: "varchar", unique: true })  
+  email!: string;
+
   @Column({ type: "varchar" })
   first_name!: string;
 

@@ -7,8 +7,11 @@ declare class Product {
     price: number;
     quantity: number;
     image?: string;
+    updated_by: string;
+    updated_at: Date | null;
     created_at: Date;
     deleted_at: Date | null;
+    deleted_by: string | null;
     updateTimestamp(): void;
     carts: Cart[];
     orders: Order[];

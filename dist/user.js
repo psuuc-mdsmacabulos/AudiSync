@@ -19,6 +19,10 @@ __decorate([
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
 __decorate([
+    Column({ type: "varchar", unique: true }),
+    __metadata("design:type", String)
+], User.prototype, "email", void 0);
+__decorate([
     Column({ type: "varchar" }),
     __metadata("design:type", String)
 ], User.prototype, "first_name", void 0);

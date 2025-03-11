@@ -164,7 +164,6 @@ router.post("/checkout", authMiddleware, async (req, res) => {
             change,
         });
         
-
         // Save order and clear cart
         await orderRepository.save(order);
         await cartRepository.delete({ user });
