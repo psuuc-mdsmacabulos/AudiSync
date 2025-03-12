@@ -1,6 +1,7 @@
 import express from "express";
 import { AppDataSource } from "../config/data-source.js";
 import Product from "../dist/products.js";
+import Category from "../dist/category.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -28,39 +29,53 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Update product quantity with logged-in user
-router.put("/update-quantity/:id", authMiddleware, async (req, res) => {
+// Update product details with logged-in user
+router.put("/update/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
-    const { quantity } = req.body;
-
-    if (!quantity || isNaN(quantity) || quantity < 0) {
-        return res.status(400).json({ message: "Invalid quantity value" });
-    }
+    const { name, description, price, quantity, category_id, image } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const product = await productRepository.findOne({ where: { id: parseInt(id) } });
+        const categoryRepository = AppDataSource.getRepository(Category);
 
+        // Check if the product exists
+        const product = await productRepository.findOne({ where: { id: parseInt(id) } });
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        product.quantity = parseInt(quantity);
-        product.updated_by = req.user.first_name + " " + req.user.last_name; 
-        product.updated_at = new Date(); 
+        // Validate category_id if provided
+        if (category_id !== undefined) {
+            const categoryExists = await categoryRepository.findOne({ where: { id: parseInt(category_id) } });
+            if (!categoryExists) {
+                return res.status(400).json({ message: "Invalid category ID" });
+            }
+            product.category_id = parseInt(category_id);
+        }
+
+        // Update only the provided fields
+        if (name !== undefined) product.name = name;
+        if (description !== undefined) product.description = description;
+        if (price !== undefined && !isNaN(price) && price >= 0) product.price = parseFloat(price);
+        if (quantity !== undefined && !isNaN(quantity) && quantity >= 0) product.quantity = parseInt(quantity);
+        if (image !== undefined) product.image = image;
+
+        product.updated_by = req.user.first_name + " " + req.user.last_name;
+        product.updated_at = new Date();
 
         await productRepository.save(product);
 
-        res.json({ 
-            message: "Product quantity updated successfully", 
+        res.json({
+            message: "Product updated successfully",
             product,
-            updated_by: req.user.first_name + " " + req.user.last_name 
+            updated_by: req.user.first_name + " " + req.user.last_name,
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error updating product quantity" });
+        res.status(500).json({ message: "Error updating product" });
     }
 });
+
 
 // Get all active (non-deleted) products
 router.get("/", async (req, res) => {

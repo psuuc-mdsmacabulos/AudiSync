@@ -47,7 +47,25 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 
+        // Generate tokens
         const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+        
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: false,  
+            sameSite: "None", 
+            path: "/",
+            maxAge: 60 * 60 * 1000, 
+        });
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "None",
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 * 1000, 
+        });
 
         res.json({
             message: "Login successful",
@@ -92,8 +110,9 @@ router.post("/refresh", async (req, res) => {
 
         res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            secure: false,
+            sameSite: "None",
+            path: "/",
             maxAge: 7 * 24 * 60 * 60 * 1000, 
         });
 
@@ -111,6 +130,7 @@ router.post("/refresh", async (req, res) => {
 
 // LOGOUT ROUTE 
 router.post("/logout", (req, res) => {
+    res.clearCookie("accessToken");
     res.clearCookie("refreshToken");
     res.json({ message: "Logged out successfully" });
 });

@@ -18,6 +18,11 @@ app.use(bodyParser.json());
 app.use(cors());
 app.use(cookieParser());
 
+app.use(cors({
+    origin: "http://localhost:3000", 
+    credentials: true, 
+}));
+
 app.use("/api", createUser);
 app.use("/api/auth", userRoutes);
 app.use("/api/cart", cartRoutes);
