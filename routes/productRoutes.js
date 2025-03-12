@@ -74,14 +74,28 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Get products by id
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const products = await productRepository.findOne({ where: { id: parseInt(id) } });
+        res.json(products);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching products" });
+    }
+});
+
 // Get products by category
-router.get("/:category", async (req, res) => {
-    const { category } = req.params;
+router.get("/category/:category_id", async (req, res) => {
+    const { category_id } = req.params;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.find({
-            where: { category, deleted_at: null }
+            where: { category_id, deleted_at: null }
         });
 
         if (products.length === 0) {
