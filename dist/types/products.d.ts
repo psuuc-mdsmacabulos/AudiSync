@@ -1,6 +1,6 @@
-import Cart from "./cart";
-import Order from "./order";
-import Category from "./category";
+import OrderItem from "./order_item.js";
+import Category from "./category.js";
+import Discount from "./discounts.js";
 declare class Product {
     id: number;
     name: string;
@@ -16,7 +16,7 @@ declare class Product {
     category_id: number;
     updateTimestamp(): void;
     category: Category;
-    carts: Cart[];
-    orders: Order[];
+    orderItems: OrderItem[];
+    discounts: Discount[];
 }
 export default Product;

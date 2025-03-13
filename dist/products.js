@@ -8,9 +8,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany, ManyToOne, JoinColumn } from "typeorm";
-import Cart from "./cart.js";
-import Order from "./order.js";
+import OrderItem from "./order_item.js";
 import Category from "./category.js";
+import Discount from "./discounts.js";
 let Product = class Product {
     updateTimestamp() {
         this.updated_at = new Date();
@@ -76,13 +76,13 @@ __decorate([
     __metadata("design:type", Category)
 ], Product.prototype, "category", void 0);
 __decorate([
-    OneToMany(() => Cart, (cart) => cart.product),
+    OneToMany(() => OrderItem, (orderItem) => orderItem.product),
     __metadata("design:type", Array)
-], Product.prototype, "carts", void 0);
+], Product.prototype, "orderItems", void 0);
 __decorate([
-    OneToMany(() => Order, (order) => order.item),
+    OneToMany(() => Discount, (discount) => discount.product),
     __metadata("design:type", Array)
-], Product.prototype, "orders", void 0);
+], Product.prototype, "discounts", void 0);
 Product = __decorate([
     Entity("products")
 ], Product);

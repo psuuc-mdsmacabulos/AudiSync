@@ -1,24 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from "typeorm";
-import Product from "./products";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import  OrderItem from "./order_item.js";
 
 @Entity("orders")
-class Order {
+ class Order {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => Product, (product) => product.orders, { nullable: false })
-    item: Product | null = null;
-
-    @Column({ type: "varchar", length: 50 })
+    @Column()
     order_type!: string;
 
-    @Column({ type: "varchar", length: 255, nullable: true })
-    customer_name?: string;
+    @Column()
+    customer_name!: string;
 
-    @Column({ type: "varchar", length: 255 })
+    @Column()
     staff_name!: string;
 
-    @Column({ type: "varchar", length: 20 })
+    @Column({ nullable: true })
     discount_type!: string;
 
     @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
@@ -30,20 +27,23 @@ class Order {
     @Column({ type: "decimal", precision: 10, scale: 2 })
     final_price!: number;
 
-    @Column({ type: "varchar", length: 50 })
+    @Column()
     payment_method!: string;
 
     @Column({ type: "decimal", precision: 10, scale: 2 })
     amount_paid!: number;
 
-    @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+    @Column({ type: "decimal", precision: 10, scale: 2 })
     change!: number;
 
-    @Column({ type: "varchar", length: 20, default: "pending" })
-    status!: string; 
+    @Column({ type: "varchar", default: "pending" })
+    status!: string;
 
-    @CreateDateColumn()
+    @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     created_at!: Date;
+
+    @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true }) // Relation to OrderItem
+    orderItems!: OrderItem[];
 }
 
 export default Order;

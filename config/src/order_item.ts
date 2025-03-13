@@ -1,17 +1,17 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import User from "./user.js";
+import Order from "./order.js";
 import Product from "./products.js";
 
-@Entity("cart")
-class Cart {
+@Entity("order_items")
+class OrderItem {
     @PrimaryGeneratedColumn()
     id!: number;
 
-    @ManyToOne(() => User, (user) => user.carts, { onDelete: "CASCADE" })
-    user: User | null = null;
+    @ManyToOne(() => Order, (order) => order.orderItems, { onDelete: "CASCADE" })
+    order!: Order;
 
     @ManyToOne(() => Product, { onDelete: "CASCADE" })
-    product!: Product;
+    product: Product | null = null;
 
     @Column()
     quantity!: number;
@@ -23,4 +23,4 @@ class Cart {
     total_price!: number;
 }
 
-export default Cart;
+export default OrderItem;

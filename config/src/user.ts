@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
-import Cart from "./cart"; 
+import Cart from "./cart.js"; 
 
 @Entity("users")
 class User {

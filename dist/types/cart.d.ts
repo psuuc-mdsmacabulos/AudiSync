@@ -1,5 +1,5 @@
-import User from "./user";
-import Product from "./products";
+import User from "./user.js";
+import Product from "./products.js";
 declare class Cart {
     id: number;
     user: User | null;
@@ -7,7 +7,5 @@ declare class Cart {
     quantity: number;
     price: number;
     total_price: number;
-    created_at: Date;
-    updated_at: Date;
 }
 export default Cart;

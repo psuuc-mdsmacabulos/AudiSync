@@ -1,9 +1,8 @@
-import Product from "./products";
+import OrderItem from "./order_item.js";
 declare class Order {
     id: number;
-    item: Product | null;
     order_type: string;
-    customer_name?: string;
+    customer_name: string;
     staff_name: string;
     discount_type: string;
     discount_value: number;
@@ -14,5 +13,6 @@ declare class Order {
     change: number;
     status: string;
     created_at: Date;
+    orderItems: OrderItem[];
 }
 export default Order;

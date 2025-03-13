@@ -8,39 +8,39 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import User from "./user.js";
+import Order from "./order.js";
 import Product from "./products.js";
-let Cart = class Cart {
+let OrderItem = class OrderItem {
     constructor() {
-        this.user = null;
+        this.product = null;
     }
 };
 __decorate([
     PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
-], Cart.prototype, "id", void 0);
+], OrderItem.prototype, "id", void 0);
 __decorate([
-    ManyToOne(() => User, (user) => user.carts, { onDelete: "CASCADE" }),
-    __metadata("design:type", Object)
-], Cart.prototype, "user", void 0);
+    ManyToOne(() => Order, (order) => order.orderItems, { onDelete: "CASCADE" }),
+    __metadata("design:type", Order)
+], OrderItem.prototype, "order", void 0);
 __decorate([
     ManyToOne(() => Product, { onDelete: "CASCADE" }),
-    __metadata("design:type", Product)
-], Cart.prototype, "product", void 0);
+    __metadata("design:type", Object)
+], OrderItem.prototype, "product", void 0);
 __decorate([
     Column(),
     __metadata("design:type", Number)
-], Cart.prototype, "quantity", void 0);
+], OrderItem.prototype, "quantity", void 0);
 __decorate([
     Column("decimal", { precision: 10, scale: 2 }),
     __metadata("design:type", Number)
-], Cart.prototype, "price", void 0);
+], OrderItem.prototype, "price", void 0);
 __decorate([
     Column("decimal", { precision: 10, scale: 2 }),
     __metadata("design:type", Number)
-], Cart.prototype, "total_price", void 0);
-Cart = __decorate([
-    Entity("cart")
-], Cart);
-export default Cart;
-//# sourceMappingURL=cart.js.map
+], OrderItem.prototype, "total_price", void 0);
+OrderItem = __decorate([
+    Entity("order_items")
+], OrderItem);
+export default OrderItem;
+//# sourceMappingURL=order_item.js.map

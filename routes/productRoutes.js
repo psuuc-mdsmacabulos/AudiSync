@@ -2,6 +2,7 @@ import express from "express";
 import { AppDataSource } from "../config/data-source.js";
 import Product from "../dist/products.js";
 import Category from "../dist/category.js";
+import Discount from "../dist/discounts.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
@@ -26,6 +27,48 @@ router.post("/", async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error saving product" });
+    }
+});
+
+// Add discount per product
+router.post("/:id/discount", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { type, value, start_date, end_date } = req.body;
+
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const discountRepository = AppDataSource.getRepository(Discount);
+
+        // Validate product existence
+        const product = await productRepository.findOne({ where: { id: parseInt(id) } });
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        // Validate discount type
+        if (!["fixed", "percentage"].includes(type)) {
+            return res.status(400).json({ message: "Invalid discount type. Must be 'fixed' or 'percentage'." });
+        }
+
+        // Validate discount value
+        if (isNaN(value) || value <= 0) {
+            return res.status(400).json({ message: "Invalid discount value. Must be a positive number." });
+        }
+
+        // Create new discount entry
+        const discount = new Discount();
+        discount.product = product;
+        discount.type = type;
+        discount.value = parseFloat(value);
+        discount.start_date = start_date ? new Date(start_date) : new Date();
+        discount.end_date = end_date ? new Date(end_date) : null;
+
+        await discountRepository.save(discount);
+
+        res.status(201).json({ message: "Discount added successfully", discount });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error adding discount" });
     }
 });
 

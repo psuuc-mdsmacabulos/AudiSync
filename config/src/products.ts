@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany, ManyToOne, JoinColumn } from "typeorm";
-import Cart from "./cart"; 
-import Order from "./order";  
-import Category from "./category";
+import OrderItem from "./order_item.js";  
+import Category from "./category.js";
+import Discount from "./discounts.js";
 
 @Entity("products")
 class Product {
@@ -50,11 +50,12 @@ class Product {
   @JoinColumn({ name: "category_id" }) 
   category!: Category;
 
-  @OneToMany(() => Cart, (cart) => cart.product)
-  carts!: Cart[];
+  // ✅ Fixed: Now referencing OrderItem instead of Cart
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
+  orderItems!: OrderItem[];  
 
-  @OneToMany(() => Order, (order) => order.item)
-  orders!: Order[];  
+  @OneToMany(() => Discount, (discount) => discount.product)
+  discounts!: Discount[];
 }
 
 export default Product;

@@ -7,35 +7,28 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from "typeorm";
-import Product from "./products.js";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import OrderItem from "./order_item.js";
 let Order = class Order {
-    constructor() {
-        this.item = null;
-    }
 };
 __decorate([
     PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
 ], Order.prototype, "id", void 0);
 __decorate([
-    ManyToOne(() => Product, (product) => product.orders, { nullable: false }),
-    __metadata("design:type", Object)
-], Order.prototype, "item", void 0);
-__decorate([
-    Column({ type: "varchar", length: 50 }),
+    Column(),
     __metadata("design:type", String)
 ], Order.prototype, "order_type", void 0);
 __decorate([
-    Column({ type: "varchar", length: 255, nullable: true }),
+    Column(),
     __metadata("design:type", String)
 ], Order.prototype, "customer_name", void 0);
 __decorate([
-    Column({ type: "varchar", length: 255 }),
+    Column(),
     __metadata("design:type", String)
 ], Order.prototype, "staff_name", void 0);
 __decorate([
-    Column({ type: "varchar", length: 20 }),
+    Column({ nullable: true }),
     __metadata("design:type", String)
 ], Order.prototype, "discount_type", void 0);
 __decorate([
@@ -51,7 +44,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Order.prototype, "final_price", void 0);
 __decorate([
-    Column({ type: "varchar", length: 50 }),
+    Column(),
     __metadata("design:type", String)
 ], Order.prototype, "payment_method", void 0);
 __decorate([
@@ -59,17 +52,21 @@ __decorate([
     __metadata("design:type", Number)
 ], Order.prototype, "amount_paid", void 0);
 __decorate([
-    Column({ type: "decimal", precision: 10, scale: 2, default: 0 }),
+    Column({ type: "decimal", precision: 10, scale: 2 }),
     __metadata("design:type", Number)
 ], Order.prototype, "change", void 0);
 __decorate([
-    Column({ type: "varchar", length: 20, default: "pending" }),
+    Column({ type: "varchar", default: "pending" }),
     __metadata("design:type", String)
 ], Order.prototype, "status", void 0);
 __decorate([
-    CreateDateColumn(),
+    Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" }),
     __metadata("design:type", Date)
 ], Order.prototype, "created_at", void 0);
+__decorate([
+    OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true }),
+    __metadata("design:type", Array)
+], Order.prototype, "orderItems", void 0);
 Order = __decorate([
     Entity("orders")
 ], Order);
