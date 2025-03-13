@@ -163,7 +163,6 @@ router.post("/checkout", authMiddleware, async (req, res) => {
         for (const orderItem of orderItemsToSave) {
             orderItem.order = savedOrder; // ✅ Set the order relation
             await orderItemRepository.save(orderItem);
-            console.log(`✅ OrderItem saved for Product ID ${orderItem.product.id}`);
         }
 
         // **Clear user's cart**
