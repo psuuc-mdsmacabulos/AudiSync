@@ -1,28 +1,30 @@
-import express from 'express';
-import cors from 'cors';
-import salesRoutes from './routes/salesRoutes.js'; 
-import userRoutes from './routes/userLogin.js'; 
-import productRoutes from './routes/productRoutes.js';
-import orderRoutes from './routes/orderRoutes.js'; 
-import cartRoutes from './routes/cartRoutes.js';
-import createUser from './routes/createUser.js';
-import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
-import cookieParser from 'cookie-parser';
-import './config/jobs/removeExpiredDiscounts.js';
+import express from "express";
+import cors from "cors";
+import salesRoutes from "./routes/salesRoutes.js";
+import userRoutes from "./routes/userLogin.js";
+import productRoutes from "./routes/productRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import createUser from "./routes/createUser.js";
+import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import "./config/jobs/removeExpiredDiscounts.js";
+
+const app = express();
 
 dotenv.config(); 
 
-const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(bodyParser.json());
-app.use(cors());
 app.use(cookieParser());
-
-app.use(cors({
-    origin: "http://localhost:3000", 
-    credentials: true, 
-}));
 
 app.use("/api", createUser);
 app.use("/api/auth", userRoutes);
@@ -33,5 +35,5 @@ app.use("/api/sales", salesRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server running successfully on port ${PORT}`);
+  console.log(`Server running successfully on port ${PORT}`);
 });

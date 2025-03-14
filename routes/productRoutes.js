@@ -132,13 +132,11 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Get products by id
-router.get("/:id", async (req, res) => {
-    const { id } = req.params;
-
+// Get all active products (is_active)
+router.get("/active", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const products = await productRepository.findOne({ where: { id: parseInt(id) } });
+        const products = await productRepository.find({ where: { is_active: true } });
         res.json(products);
     } catch (error) {
         console.error(error);
@@ -146,26 +144,43 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-// Get all active (is_active) products
-router.get("/active", async (req, res) => {
+// Get products by id
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    const productId = parseInt(id, 10);
+    if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+    }
+
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const products = await productRepository.find({ where: { is_active: 1 } });
-        res.json(products);
+        const product = await productRepository.findOne({ where: { id: productId } });
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        res.json(product);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error fetching products" });
+        res.status(500).json({ message: "Error fetching product" });
     }
 });
 
 // Get products by category
 router.get("/category/:category_id", async (req, res) => {
     const { category_id } = req.params;
+    const categoryId = parseInt(category_id, 10);
+
+    if (isNaN(categoryId)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+    }
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.find({
-            where: { category_id, deleted_at: null }
+            where: { category_id: categoryId, deleted_at: null }
         });
 
         if (products.length === 0) {
@@ -178,6 +193,7 @@ router.get("/category/:category_id", async (req, res) => {
         res.status(500).json({ message: "Error fetching products by category" });
     }
 });
+
 
 // Soft delete a product 
 router.delete("/:id", authMiddleware, async (req, res) => {

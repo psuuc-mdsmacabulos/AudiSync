@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 const router = Router();
+const isProduction = process.env.NODE_ENV === "production";
 
 // Generate Access Token 
 const generateAccessToken = (user) => {
@@ -53,18 +54,18 @@ router.post("/login", async (req, res) => {
         
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: false,  
-            sameSite: "None", 
+            secure: false, 
+            sameSite: isProduction ? "None" : "Lax",
             path: "/",
-            maxAge: 60 * 60 * 1000, 
+            maxAge: 60 * 60 * 1000, // 1 hour
         });
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: "None",
+            secure: false, 
+            sameSite: isProduction ? "None" : "Lax",
             path: "/",
-            maxAge: 7 * 24 * 60 * 60 * 1000, 
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         });
 
         res.json({
@@ -100,19 +101,18 @@ router.post("/refresh", async (req, res) => {
         const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOne({ where: { id: decoded.userId } });
 
-        // If user is not found, reject refresh
         if (!user) {
             return res.status(401).json({ message: "User not found. Please log in again." });
         }
 
-        // Generate a new access token 
+        // Generate a new access token
         const newAccessToken = generateAccessToken(user);
 
-        // Send the new access token without changing the refresh token
+        // Send new access token
         res.json({
             message: "Token refreshed successfully",
             accessToken: newAccessToken,
-            expiresIn: "1h", 
+            expiresIn: 3600, 
             user: {
                 id: user.id,
                 name: `${user.first_name} ${user.last_name}`,
@@ -128,9 +128,14 @@ router.post("/refresh", async (req, res) => {
 
 // LOGOUT ROUTE 
 router.post("/logout", (req, res) => {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
-    res.json({ message: "Logged out successfully" });
+    try {
+        res.clearCookie("accessToken", { path: "/" });
+        res.clearCookie("refreshToken", { path: "/" });
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
 });
 
 export default router;
