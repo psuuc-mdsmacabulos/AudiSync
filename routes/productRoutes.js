@@ -4,7 +4,7 @@ import Product from "../dist/products.js";
 import Category from "../dist/category.js";
 import Discount from "../dist/discounts.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
-import { IsNull } from "typeorm";
+import { IsNull, Not } from "typeorm";
 
 const router = express.Router();
 
@@ -130,10 +130,25 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
     }
 });
 
+
+// Fetch not soft deleted
 router.get("/", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.find({ where: { deleted_at: IsNull() } });
+
+        res.json(products);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching products" });
+    }
+});
+
+// Fetch soft deleted
+router.get("/deleted", async (req, res) => {
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const products = await productRepository.find({ where: { deleted_at: Not(IsNull()) } });
 
         res.json(products);
     } catch (error) {
