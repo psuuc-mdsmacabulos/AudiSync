@@ -144,6 +144,18 @@ router.get("/active", async (req, res) => {
     }
 });
 
+// Get all active products (is_active)
+router.get("/inactive", async (req, res) => {
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const products = await productRepository.find({ where: { is_active: false } });
+        res.json(products);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching products" });
+    }
+});
+
 // Get products by id
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
