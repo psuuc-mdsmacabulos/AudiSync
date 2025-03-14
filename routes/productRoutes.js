@@ -167,27 +167,15 @@ router.get("/inactive", async (req, res) => {
     }
 });
 
-// Get products by id
-router.get("/:id", async (req, res) => {
-    const { id } = req.params;
-
-    const productId = parseInt(id, 10);
-    if (isNaN(productId)) {
-        return res.status(400).json({ message: "Invalid product ID" });
-    }
-
+// Get categories
+router.get("/categories", async (req, res) => {
     try {
-        const productRepository = AppDataSource.getRepository(Product);
-        const product = await productRepository.findOne({ where: { id: productId } });
-
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
-
-        res.json(product);
+        const categoryRepository = AppDataSource.getRepository(Category);
+        const categories = await categoryRepository.find();
+        res.json(categories);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error fetching product" });
+        res.status(500).json({ message: "Error fetching categories" });
     }
 });
 
@@ -216,6 +204,31 @@ router.get("/category/:category_id", async (req, res) => {
         res.status(500).json({ message: "Error fetching products by category" });
     }
 });
+
+// Get products by id
+router.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    const productId = parseInt(id, 10);
+    if (isNaN(productId)) {
+        return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const product = await productRepository.findOne({ where: { id: productId } });
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        res.json(product);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching product" });
+    }
+});
+
 
 
 // Soft delete a product 
