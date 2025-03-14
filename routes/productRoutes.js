@@ -10,12 +10,20 @@ const router = express.Router();
 
 // Create a new product
 router.post("/", async (req, res) => {
-    const { name, description, price, quantity, image, category } = req.body;
+    const { name, description, price, quantity, image, categoryId } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const product = new Product();
+        const categoryRepository = AppDataSource.getRepository(Category);
 
+        // Check if the category exists
+        const category = await categoryRepository.findOne({ where: { id: categoryId } });
+        if (!category) {
+            return res.status(400).json({ message: "Category not found" });
+        }
+
+        // Create the product
+        const product = new Product();
         product.name = name;
         product.description = description;
         product.price = price;
@@ -30,6 +38,7 @@ router.post("/", async (req, res) => {
         res.status(500).json({ message: "Error saving product" });
     }
 });
+
 
 // Add discount per product
 router.post("/:id/discount", authMiddleware, async (req, res) => {
@@ -125,7 +134,7 @@ router.get("/", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.find({ where: { deleted_at: IsNull() } });
-        
+
         res.json(products);
     } catch (error) {
         console.error(error);
