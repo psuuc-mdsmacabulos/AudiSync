@@ -14,6 +14,7 @@ declare class Product {
     deleted_at: Date | null;
     deleted_by: string | null;
     category_id: number;
+    is_active: boolean;
     updateTimestamp(): void;
     category: Category;
     orderItems: OrderItem[];

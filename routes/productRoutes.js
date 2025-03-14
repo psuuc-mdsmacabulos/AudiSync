@@ -75,7 +75,7 @@ router.post("/:id/discount", authMiddleware, async (req, res) => {
 // Update product details with logged-in user
 router.put("/update/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, quantity, category_id, image } = req.body;
+    const { name, description, price, quantity, category_id, image, is_active } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
@@ -101,6 +101,7 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
         if (description !== undefined) product.description = description;
         if (price !== undefined && !isNaN(price) && price >= 0) product.price = parseFloat(price);
         if (quantity !== undefined && !isNaN(quantity) && quantity >= 0) product.quantity = parseInt(quantity);
+        if (is_active !== undefined) product.is_active = is_active;
         if (image !== undefined) product.image = image;
 
         product.updated_by = req.user.first_name + " " + req.user.last_name;
@@ -119,8 +120,7 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
     }
 });
 
-
-// Get all active (non-deleted) products
+// Get all active (non-soft deleted) products
 router.get("/", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
@@ -139,6 +139,18 @@ router.get("/:id", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.findOne({ where: { id: parseInt(id) } });
+        res.json(products);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error fetching products" });
+    }
+});
+
+// Get all active (is_active) products
+router.get("/active", async (req, res) => {
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const products = await productRepository.find({ where: { is_active: 1 } });
         res.json(products);
     } catch (error) {
         console.error(error);

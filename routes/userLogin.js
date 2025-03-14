@@ -84,7 +84,7 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// REFRESH TOKEN ROUTE - Generate a new access token but keep the user logged in
+// REFRESH TOKEN ROUTE 
 router.post("/refresh", async (req, res) => {
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
@@ -105,7 +105,7 @@ router.post("/refresh", async (req, res) => {
             return res.status(401).json({ message: "User not found. Please log in again." });
         }
 
-        // Generate a new access token (but DON'T replace the refresh token)
+        // Generate a new access token 
         const newAccessToken = generateAccessToken(user);
 
         // Send the new access token without changing the refresh token

@@ -65,6 +65,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Product.prototype, "category_id", void 0);
 __decorate([
+    Column({ type: "boolean", default: true }),
+    __metadata("design:type", Boolean)
+], Product.prototype, "is_active", void 0);
+__decorate([
     BeforeUpdate(),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),

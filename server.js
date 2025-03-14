@@ -9,6 +9,7 @@ import createUser from './routes/createUser.js';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import './config/jobs/removeExpiredDiscounts.js';
 
 dotenv.config(); 
 

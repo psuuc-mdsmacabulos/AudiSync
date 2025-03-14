@@ -41,6 +41,9 @@ class Product {
   @Column({ type: "int" })
   category_id!: number;
 
+  @Column({ type: "boolean", default: true }) 
+  is_active!: boolean;
+
   @BeforeUpdate()
   updateTimestamp() {
     this.updated_at = new Date(); 
@@ -50,7 +53,6 @@ class Product {
   @JoinColumn({ name: "category_id" }) 
   category!: Category;
 
-  // ✅ Fixed: Now referencing OrderItem instead of Cart
   @OneToMany(() => OrderItem, (orderItem) => orderItem.product)
   orderItems!: OrderItem[];  
 

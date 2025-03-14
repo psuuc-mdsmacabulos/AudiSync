@@ -11,7 +11,7 @@ import { LessThanOrEqual, MoreThanOrEqual } from "typeorm";
 
 const router = express.Router();
 
-/** Add items to cart */
+// Add items to cart 
 router.post("/add", async (req, res) => {
 
     const { userId, products } = req.body;
@@ -159,9 +159,9 @@ router.post("/checkout", authMiddleware, async (req, res) => {
 
         const savedOrder = await orderRepository.save(order);
 
-        // **Link OrderItems to the Order and save them**
+        // **Link OrderItems to the Order
         for (const orderItem of orderItemsToSave) {
-            orderItem.order = savedOrder; // ✅ Set the order relation
+            orderItem.order = savedOrder; // Set the order relation
             await orderItemRepository.save(orderItem);
         }
 
