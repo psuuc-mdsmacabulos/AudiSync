@@ -4,6 +4,7 @@ import Product from "../dist/products.js";
 import Category from "../dist/category.js";
 import Discount from "../dist/discounts.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
+import { IsNull } from "typeorm";
 
 const router = express.Router();
 
@@ -120,17 +121,18 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
     }
 });
 
-// Get all active (non-soft deleted) products
 router.get("/", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const products = await productRepository.find({ where: { deleted_at: null } });
+        const products = await productRepository.find({ where: { deleted_at: IsNull() } });
+        
         res.json(products);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error fetching products" });
     }
 });
+
 
 // Get all active products (is_active)
 router.get("/active", async (req, res) => {
