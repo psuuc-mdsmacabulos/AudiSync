@@ -11,23 +11,49 @@ import { LessThanOrEqual, MoreThanOrEqual } from "typeorm";
 
 const router = express.Router();
 
-// Add items to cart 
-router.post("/add", async (req, res) => {
-
-    const { userId, products } = req.body;
-
-    if (!userId || !Array.isArray(products) || products.length === 0) {
-        return res.status(400).json({ message: "User ID and an array of products are required." });
-    }
-
+// Fetch all cart items for a specific user
+router.get("/", authMiddleware, async (req, res) => {
     try {
+        const cartRepository = AppDataSource.getRepository(Cart);
+        const user = req.user;
+
+        const cartItems = await cartRepository.find({
+            where: { user },
+            relations: ["product"],
+        });
+
+        res.json(cartItems);
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
+});
+
+router.post("/add", async (req, res) => {
+    try {
+        const { userId, products } = req.body;
+
+        console.log("🛒 Incoming request:", req.body); // Debugging log
+
+        // Validate userId format
+        if (!userId || typeof userId !== "number") {
+            console.error(`❌ Invalid userId:`, userId);
+            return res.status(400).json({ message: "Invalid userId format. Must be a number." });
+        }
+
+        if (!Array.isArray(products) || products.length === 0) {
+            console.error("❌ Missing or invalid products array");
+            return res.status(400).json({ message: "Products array is required and cannot be empty." });
+        }
+
         const userRepository = AppDataSource.getRepository(User);
         const productRepository = AppDataSource.getRepository(Product);
         const discountRepository = AppDataSource.getRepository(Discount);
         const cartRepository = AppDataSource.getRepository(Cart);
 
-        const user = await userRepository.findOne({ where: { id: userId } });
+        // Ensure user exists
+        const user = await userRepository.findOne({ where: { id: Number(userId) } });
         if (!user) {
+            console.error(`❌ User not found: ${userId}`);
             return res.status(404).json({ message: "User not found" });
         }
 
@@ -37,15 +63,26 @@ router.post("/add", async (req, res) => {
         for (const item of products) {
             const { productId, quantity } = item;
 
+            console.log(`🔍 Checking product: ID=${productId}, Quantity=${quantity}`);
+
+            if (!productId || !quantity || quantity <= 0) {
+                console.error(`❌ Invalid product data: ${JSON.stringify(item)}`);
+                return res.status(400).json({ message: "Invalid product data" });
+            }
+
+            // Ensure product exists
             const product = await productRepository.findOne({ where: { id: productId } });
             if (!product) {
+                console.error(`❌ Product not found: ${productId}`);
                 return res.status(404).json({ message: `Product with ID ${productId} not found` });
             }
 
             if (product.quantity < quantity) {
+                console.error(`❌ Insufficient stock for product ID ${productId}`);
                 return res.status(400).json({ message: `Not enough stock for product ID ${productId}` });
             }
 
+            // Apply discount if available
             const activeDiscount = await discountRepository.findOne({
                 where: {
                     product: { id: productId },
@@ -69,7 +106,7 @@ router.post("/add", async (req, res) => {
 
             const newCartItem = cartRepository.create({
                 user,
-                product, 
+                product,
                 quantity,
                 price: final_price,
                 total_price,
@@ -79,12 +116,46 @@ router.post("/add", async (req, res) => {
             cartItems.push(newCartItem);
         }
 
+        console.log("✅ Items added to cart:", cartItems);
         res.json({ message: "Items added to cart successfully", cartItems });
     } catch (err) {
-        res.status(500).json({ message: "Server error" });
+        console.error("❌ Server error:", err);
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 });
 
+// **REMOVE ITEM FROM CART**
+router.delete("/remove/:cartItemId", authMiddleware, async (req, res) => {
+    try {
+        const cartRepository = AppDataSource.getRepository(Cart);
+        const productRepository = AppDataSource.getRepository(Product);
+        const { cartItemId } = req.params;
+        const user = req.user;
+
+        // Find the cart item
+        const cartItem = await cartRepository.findOne({
+            where: { id: cartItemId, user },
+            relations: ["product"],
+        });
+
+        if (!cartItem) {
+            return res.status(404).json({ message: "Cart item not found" });
+        }
+
+        // Restore stock to product
+        const product = cartItem.product;
+        product.quantity += cartItem.quantity;
+        await productRepository.save(product);
+
+        // Remove the item from the cart
+        await cartRepository.delete(cartItem.id);
+
+        return res.status(200).json({ message: "Item removed from cart successfully" });
+    } catch (error) {
+        console.error("❌ Error removing item from cart:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
 
 // Cart to checkout
 router.post("/checkout", authMiddleware, async (req, res) => {
