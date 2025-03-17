@@ -244,8 +244,6 @@ router.get("/:id", async (req, res) => {
     }
 });
 
-
-
 // Soft delete a product 
 router.delete("/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
