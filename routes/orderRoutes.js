@@ -25,7 +25,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
         const orderRepository = AppDataSource.getRepository(Order);
         const order = await orderRepository.findOne({ 
             where: { id: orderId },
-            relations: ["items"] 
+            relations: ["orderItems"] 
         });
 
         if (!order) {
