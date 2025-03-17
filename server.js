@@ -10,6 +10,8 @@ import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import "./config/jobs/removeExpiredDiscounts.js";
+import path from 'path';
+
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
+app.use('/uploads', express.static(path.join('public', 'uploads')));
+
 
 const PORT = process.env.PORT || 6000;
 app.listen(PORT, () => {

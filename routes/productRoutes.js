@@ -5,12 +5,30 @@ import Category from "../dist/category.js";
 import Discount from "../dist/discounts.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { IsNull, Not } from "typeorm";
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
+
 
 const router = express.Router();
 
-// Create a new product
-router.post("/", async (req, res) => {
-    const { name, description, price, quantity, image, categoryId } = req.body;
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join('public', 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
+});
+
+const upload = multer({ storage });
+
+router.post("/", upload.single('image'), async (req, res) => {
+    const { name, description, price, quantity, categoryId, imageUrl } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
@@ -29,7 +47,21 @@ router.post("/", async (req, res) => {
         product.price = price;
         product.quantity = quantity;
         product.category = category;
-        product.image = image;
+
+        // Handle image upload or URL
+        if (req.file) {
+            const imagePath = `/uploads/${req.file.filename}`;
+            const imageBuffer = fs.readFileSync(req.file.path);
+
+            product.image = imagePath;
+            product.image_data = imageBuffer;
+        } else if (imageUrl) {
+            product.image = imageUrl;
+            product.image_data = null; // No binary data for URL-based image
+        } else {
+            product.image = null;
+            product.image_data = null;
+        }
 
         await productRepository.save(product);
         res.status(201).json(product);
@@ -38,7 +70,6 @@ router.post("/", async (req, res) => {
         res.status(500).json({ message: "Error saving product" });
     }
 });
-
 
 // Add discount per product
 router.post("/:id/discount", authMiddleware, async (req, res) => {
