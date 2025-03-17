@@ -9,7 +9,7 @@ const router = express.Router();
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const orderRepository = AppDataSource.getRepository(Order);
-        const orders = await orderRepository.find({ relations: ["items"] });
+        const orders = await orderRepository.find({ relations: ["orderItems"] });
         res.json(orders);
     } catch (error) {
         console.error(error);

@@ -11,6 +11,9 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import "./config/jobs/removeExpiredDiscounts.js";
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 const app = express();
@@ -23,6 +26,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 app.use(express.json());
 app.use(bodyParser.json());

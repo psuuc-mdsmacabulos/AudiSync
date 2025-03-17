@@ -7,54 +7,83 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 import { IsNull, Not } from "typeorm";
 import multer from 'multer';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 
 const router = express.Router();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = path.join('public', 'uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+        const uploadPath = path.join(__dirname, '../public/uploads');
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
         }
-        cb(null, uploadDir);
+        cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
         cb(null, `${Date.now()}-${file.originalname}`);
     },
 });
+  
+  const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+    fileFilter: (req, file, cb) => {
+      const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error("Invalid file type. Only JPEG, PNG, and WEBP are allowed."));
+      }
+    },
+  });
+  
 
-const upload = multer({ storage });
-
-router.post("/", upload.single('image'), async (req, res) => {
-    const { name, description, price, quantity, categoryId, imageUrl } = req.body;
+  router.post("/", upload.single('image'), async (req, res) => {
+    let { name, description, price, quantity, category_id, imageUrl } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
         const categoryRepository = AppDataSource.getRepository(Category);
 
-        // Check if the category exists
-        const category = await categoryRepository.findOne({ where: { id: categoryId } });
-        if (!category) {
-            return res.status(400).json({ message: "Category not found" });
+        // Convert to proper types and handle NaN
+        price = isNaN(Number(price)) ? 0 : parseFloat(price);
+        quantity = isNaN(Number(quantity)) ? 0 : parseInt(quantity);
+        const categoryId = isNaN(Number(category_id)) ? null : parseInt(category_id);
+
+        // Validate category existence only if category_id is provided
+        let category = null;
+        if (categoryId) {
+            category = await categoryRepository.findOne({ where: { id: categoryId } });
+            if (!category) {
+                if (req.file) {
+                    fs.unlinkSync(req.file.path); // Delete uploaded file if category not found
+                }
+                return res.status(400).json({ message: "Category not found" });
+            }
         }
 
         // Create the product
         const product = new Product();
-        product.name = name;
-        product.description = description;
+        product.name = name?.trim() || "";
+        product.description = description?.trim() || "";
         product.price = price;
         product.quantity = quantity;
-        product.category = category;
+        product.category = category || null;
 
         // Handle image upload or URL
         if (req.file) {
             const imagePath = `/uploads/${req.file.filename}`;
-            const imageBuffer = fs.readFileSync(req.file.path);
-
             product.image = imagePath;
-            product.image_data = imageBuffer;
+            try {
+                product.image_data = fs.readFileSync(req.file.path); // Save binary data if needed
+            } catch (err) {
+                console.warn("Failed to read image file:", err.message);
+                product.image_data = null;
+            }
         } else if (imageUrl) {
             product.image = imageUrl;
             product.image_data = null; // No binary data for URL-based image
@@ -63,11 +92,26 @@ router.post("/", upload.single('image'), async (req, res) => {
             product.image_data = null;
         }
 
-        await productRepository.save(product);
-        res.status(201).json(product);
+        // Save product to the database
+        const savedProduct = await productRepository.save(product);
+
+        res.status(201).json({
+            message: "Product created successfully",
+            product: savedProduct
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error saving product" });
+        console.error("Error saving product:", error.message);
+        
+        // ✅ Delete file if an error occurs
+        if (req.file) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (unlinkErr) {
+                console.warn("Failed to delete file:", unlinkErr.message);
+            }
+        }
+
+        res.status(500).json({ message: `Error saving product: ${error.message}` });
     }
 });
 
@@ -113,10 +157,9 @@ router.post("/:id/discount", authMiddleware, async (req, res) => {
     }
 });
 
-// Update product details with logged-in user
-router.put("/update/:id", authMiddleware, async (req, res) => {
+router.put("/update/:id", authMiddleware, upload.single('image'), async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, quantity, category_id, image, is_active } = req.body;
+    const { name, description, price, quantity, category_id, imageUrl, is_active } = req.body;
 
     try {
         const productRepository = AppDataSource.getRepository(Product);
@@ -130,11 +173,11 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
 
         // Validate category_id if provided
         if (category_id !== undefined) {
-            const categoryExists = await categoryRepository.findOne({ where: { id: parseInt(category_id) } });
-            if (!categoryExists) {
+            const category = await categoryRepository.findOne({ where: { id: parseInt(category_id) } });
+            if (!category) {
                 return res.status(400).json({ message: "Invalid category ID" });
             }
-            product.category_id = parseInt(category_id);
+            product.category = category;
         }
 
         // Update only the provided fields
@@ -143,21 +186,43 @@ router.put("/update/:id", authMiddleware, async (req, res) => {
         if (price !== undefined && !isNaN(price) && price >= 0) product.price = parseFloat(price);
         if (quantity !== undefined && !isNaN(quantity) && quantity >= 0) product.quantity = parseInt(quantity);
         if (is_active !== undefined) product.is_active = is_active;
-        if (image !== undefined) product.image = image;
 
-        product.updated_by = req.user.first_name + " " + req.user.last_name;
+        // Handle image update (either file upload or URL)
+        if (req.file) {
+            // Delete old image if exists
+            if (product.image) {
+                const oldImagePath = `public${product.image}`;
+                if (fs.existsSync(oldImagePath)) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            }
+
+            // Save new file
+            const imagePath = `/uploads/${req.file.filename}`;
+            product.image = imagePath;
+            product.image_data = fs.readFileSync(req.file.path);
+        } else if (imageUrl) {
+            product.image = imageUrl;
+            product.image_data = null;
+        }
+
+        // Set update details
+        product.updated_by = `${req.user.first_name} ${req.user.last_name}`;
         product.updated_at = new Date();
 
+        // Save updated product to the database
         await productRepository.save(product);
 
         res.json({
             message: "Product updated successfully",
             product,
-            updated_by: req.user.first_name + " " + req.user.last_name,
+            updated_by: `${req.user.first_name} ${req.user.last_name}`,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error updating product" });
+        console.error("Error updating product:", error.message);
+
+        // Improved error handling
+        res.status(500).json({ message: `Error updating product: ${error.message}` });
     }
 });
 
