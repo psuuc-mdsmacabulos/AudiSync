@@ -23,9 +23,9 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
     try {
         const orderRepository = AppDataSource.getRepository(Order);
-        const order = await orderRepository.findOne({ 
+        const order = await orderRepository.findOne({
             where: { id: orderId },
-            relations: ["orderItems"] 
+            relations: ["orderItems", "orderItems.product"], // Fetch the product data along with the order items
         });
 
         if (!order) {
@@ -38,6 +38,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
         res.status(500).json({ message: "Error fetching order" });
     }
 });
+
 
 router.patch("/:id/status", authMiddleware, async (req, res) => {
     const orderId = req.params.id;
