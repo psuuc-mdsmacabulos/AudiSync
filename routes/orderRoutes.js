@@ -7,6 +7,63 @@ const router = express.Router();
 
 // Get all orders with filtering
 router.get("/", authMiddleware, async (req, res) => {
+    const { search, order_type, date, payment_method, status, status_not } = req.query;
+
+    try {
+        const orderRepository = AppDataSource.getRepository(Order);
+        
+        // Build the query using TypeORM's query builder
+        const query = orderRepository
+            .createQueryBuilder("order")
+            .leftJoinAndSelect("order.orderItems", "orderItems")
+            .leftJoinAndSelect("orderItems.product", "product")
+            // Ensure we bypass cache to get the latest data
+            .cache(false);
+
+        // Combined search for id, customer_name, or staff_name
+        if (search) {
+            query.andWhere(
+                `(order.id LIKE :search OR 
+                LOWER(order.customer_name) LIKE LOWER(:search) OR 
+                LOWER(order.staff_name) LIKE LOWER(:search))`,
+                { search: `%${search}%` }
+            );
+        }
+
+        if (order_type) {
+            query.andWhere("LOWER(order.order_type) = LOWER(:order_type)", { order_type });
+        }
+
+        if (date) {
+            query.andWhere("DATE(order.created_at) = :date", { date });
+        }
+
+        if (payment_method) {
+            query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
+        }
+
+        // Filter by status (exact match)
+        if (status) {
+            query.andWhere("LOWER(order.status) = LOWER(:status)", { status });
+        }
+
+        // Exclude orders with a specific status
+        if (status_not) {
+            query.andWhere("LOWER(order.status) != LOWER(:status_not)", { status_not });
+        }
+
+        const orders = await query.getMany();
+
+        // Set headers to prevent caching
+        res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching orders" });
+    }
+});
+
+// Get all orders with filtering for kitchen (excluding "ready" status)
+router.get("/kitchen/", authMiddleware, async (req, res) => {
     const { search, order_type, date, payment_method } = req.query;
 
     try {
@@ -16,7 +73,8 @@ router.get("/", authMiddleware, async (req, res) => {
         const query = orderRepository
             .createQueryBuilder("order")
             .leftJoinAndSelect("order.orderItems", "orderItems")
-            .leftJoinAndSelect("orderItems.product", "product");
+            .leftJoinAndSelect("orderItems.product", "product")
+            .andWhere("LOWER(order.status) != LOWER(:status)", { status: "ready" }); // Exclude completed orders
 
         // Combined search for id, customer_name, or staff_name
         if (search) {
@@ -44,11 +102,9 @@ router.get("/", authMiddleware, async (req, res) => {
 
         res.json(orders);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: "Error fetching orders" });
     }
 });
-
 
 // Get a single order by ID
 router.get("/:id", authMiddleware, async (req, res) => {
@@ -67,12 +123,11 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
         res.json(order);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: "Error fetching order" });
     }
 });
 
-
+// Update order status
 router.patch("/:id/status", authMiddleware, async (req, res) => {
     const orderId = req.params.id;
     const { status } = req.body;
@@ -93,7 +148,6 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
 
         res.json({ message: "Order status updated successfully" });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: "Error updating order status" });
     }
 });
