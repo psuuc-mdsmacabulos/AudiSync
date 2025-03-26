@@ -227,11 +227,14 @@ router.put("/update/:id", authMiddleware, upload.single('image'), async (req, re
 });
 
 
-// Fetch not soft deleted
+// Fetch not soft deleted products with discounts
 router.get("/", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
-        const products = await productRepository.find({ where: { deleted_at: IsNull() } });
+        const products = await productRepository.find({
+            where: { deleted_at: IsNull() },
+            relations: ["discounts"], // Include discounts relationship
+        });
 
         res.json(products);
     } catch (error) {
