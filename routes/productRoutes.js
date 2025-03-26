@@ -226,7 +226,6 @@ router.put("/update/:id", authMiddleware, upload.single('image'), async (req, re
     }
 });
 
-
 // Fetch not soft deleted products with discounts
 router.get("/", async (req, res) => {
     try {

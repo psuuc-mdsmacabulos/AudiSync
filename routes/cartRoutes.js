@@ -57,7 +57,6 @@ router.post("/add", async (req, res) => {
             console.error(`❌ User not found: ${userId}`);
             return res.status(404).json({ message: "User not found" });
         }
-
         const currentDate = new Date();
         let cartItems = [];
 
