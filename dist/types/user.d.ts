@@ -1,6 +1,7 @@
 import Cart from "./cart.js";
 declare class User {
     id: number;
+    avatar: string;
     email: string;
     first_name: string;
     last_name: string;

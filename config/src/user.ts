@@ -6,6 +6,9 @@ class User {
   @PrimaryGeneratedColumn()
   id!: number;
 
+  @Column({ nullable: true })
+  avatar!: string;
+
   @Column({ type: "varchar", unique: true })  
   email!: string;
 

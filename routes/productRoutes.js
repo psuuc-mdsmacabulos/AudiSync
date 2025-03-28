@@ -17,7 +17,7 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../public/uploads');
+        const uploadPath = path.join(__dirname, '../public/uploads/products');
         if (!fs.existsSync(uploadPath)) {
             fs.mkdirSync(uploadPath, { recursive: true });
         }
@@ -76,7 +76,7 @@ const storage = multer.diskStorage({
 
         // Handle image upload or URL
         if (req.file) {
-            const imagePath = `/uploads/${req.file.filename}`;
+            const imagePath = `/uploads/products/${req.file.filename}`;
             product.image = imagePath;
             try {
                 product.image_data = fs.readFileSync(req.file.path); // Save binary data if needed
@@ -198,7 +198,7 @@ router.put("/update/:id", authMiddleware, upload.single('image'), async (req, re
             }
 
             // Save new file
-            const imagePath = `/uploads/${req.file.filename}`;
+            const imagePath = `/uploads/products/${req.file.filename}`;
             product.image = imagePath;
             product.image_data = fs.readFileSync(req.file.path);
         } else if (imageUrl) {

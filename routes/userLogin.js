@@ -5,13 +5,55 @@ import { AppDataSource } from "../config/data-source.js";
 import User from "../dist/user.js";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import multer from "multer";
+import path from "path";
 
 dotenv.config();
 
 const router = Router();
 const isProduction = process.env.NODE_ENV === "production";
 
-// ✅ Generate Access Token
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, "public/uploads/avatars");
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
+});
+
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png/;
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = filetypes.test(file.mimetype);
+
+        if (extname && mimetype) {
+            return cb(null, true);
+        } else {
+            cb(new Error("Only images (jpeg, jpg, png) are allowed"));
+        }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+const authenticateToken = (req, res, next) => {
+    const token = req.cookies.accessToken || req.headers["authorization"]?.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ message: "Access token is required" });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(403).json({ message: "Invalid or expired token" });
+    }
+};
+
 const generateAccessToken = (user) => {
     return jwt.sign(
         { userId: user.id, first_name: user.first_name, last_name: user.last_name, role: user.role },
@@ -20,7 +62,6 @@ const generateAccessToken = (user) => {
     );
 };
 
-// ✅ Generate Refresh Token
 const generateRefreshToken = (user) => {
     return jwt.sign(
         { userId: user.id },
@@ -29,7 +70,6 @@ const generateRefreshToken = (user) => {
     );
 };
 
-// ✅ Generate Reset Token
 const generateResetToken = (user) => {
     return jwt.sign(
         { userId: user.id },
@@ -38,7 +78,6 @@ const generateResetToken = (user) => {
     );
 };
 
-// ✅ LOGIN ROUTE
 router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
@@ -61,14 +100,14 @@ router.post("/login", async (req, res) => {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? "None" : "Lax",
-            maxAge: 60 * 60 * 1000, // 1 hour
+            maxAge: 60 * 60 * 1000,
         });
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
             secure: isProduction,
             sameSite: isProduction ? "None" : "Lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         res.json({
@@ -87,7 +126,6 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// ✅ FORGOT PASSWORD ROUTE
 router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
 
@@ -103,15 +141,13 @@ router.post("/forgot-password", async (req, res) => {
             return res.status(404).json({ message: "Email not found" });
         }
 
-        // ✅ Generate reset token (valid for 15 minutes)
         const resetToken = generateResetToken(user);
 
-        // ✅ Store token in a secure cookie
         res.cookie("resetToken", resetToken, {
             httpOnly: true,
-            secure: isProduction, // Use HTTPS in production
+            secure: isProduction,
             sameSite: isProduction ? "None" : "Lax",
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 15 * 60 * 1000,
         });
 
         const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
@@ -143,7 +179,6 @@ router.post("/forgot-password", async (req, res) => {
     }
 });
 
-// ✅ RESET PASSWORD ROUTE
 router.post("/reset-password", async (req, res) => {
     const { newPassword } = req.body;
     const resetToken = req.cookies.resetToken;
@@ -162,12 +197,10 @@ router.post("/reset-password", async (req, res) => {
             return res.status(400).json({ message: "Invalid or expired token" });
         }
 
-        // ✅ Hash new password
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
         await userRepository.save(user);
 
-        // ✅ Clear the reset token cookie after use
         res.clearCookie("resetToken");
 
         res.json({ message: "Password reset successfully. You can now log in." });
@@ -177,7 +210,6 @@ router.post("/reset-password", async (req, res) => {
     }
 });
 
-// REFRESH TOKEN ROUTE 
 router.post("/refresh", async (req, res) => {
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
@@ -186,10 +218,8 @@ router.post("/refresh", async (req, res) => {
     }
 
     try {
-        // Verify refresh token
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET);
 
-        // Fetch user from database
         const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOne({ where: { id: decoded.userId } });
 
@@ -197,14 +227,12 @@ router.post("/refresh", async (req, res) => {
             return res.status(401).json({ message: "User not found. Please log in again." });
         }
 
-        // Generate a new access token
         const newAccessToken = generateAccessToken(user);
 
-        // Send new access token
         res.json({
             message: "Token refreshed successfully",
             accessToken: newAccessToken,
-            expiresIn: 3600, 
+            expiresIn: 3600,
             user: {
                 id: user.id,
                 name: `${user.first_name} ${user.last_name}`,
@@ -218,7 +246,6 @@ router.post("/refresh", async (req, res) => {
     }
 });
 
-// ✅ LOGOUT ROUTE
 router.post("/logout", (req, res) => {
     try {
         res.clearCookie("accessToken");
@@ -226,6 +253,113 @@ router.post("/logout", (req, res) => {
         res.json({ message: "Logged out successfully" });
     } catch (err) {
         console.error("Logout error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.get("/profile", authenticateToken, async (req, res) => {
+    try {
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: req.user.userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+            name: `${user.first_name} ${user.last_name}`,
+            email: user.email,
+            avatar: user.avatar || null,
+            role: user.role,
+        });
+    } catch (err) {
+        console.error("Get profile error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.put("/update", authenticateToken, async (req, res) => {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+        return res.status(400).json({ message: "Name and email are required" });
+    }
+
+    try {
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: req.user.userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const [first_name, ...lastNameParts] = name.trim().split(" ");
+        const last_name = lastNameParts.join(" ") || "";
+
+        user.first_name = first_name;
+        user.last_name = last_name;
+        user.email = email;
+
+        await userRepository.save(user);
+
+        res.json({ message: "Profile updated successfully" });
+    } catch (err) {
+        console.error("Update profile error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.put("/change-password", authenticateToken, async (req, res) => {
+    const { current, new: newPassword } = req.body;
+
+    if (!current || !newPassword) {
+        return res.status(400).json({ message: "Current and new password are required" });
+    }
+
+    try {
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: req.user.userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const isMatch = await bcrypt.compare(current, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+
+        await userRepository.save(user);
+
+        res.json({ message: "Password changed successfully" });
+    } catch (err) {
+        console.error("Change password error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.post("/upload-avatar", authenticateToken, upload.single("image"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: req.user.userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        user.avatar = `/uploads/avatars/${req.file.filename}`;
+        await userRepository.save(user);
+
+        res.json({ message: "Profile image updated successfully", avatar: user.avatar });
+    } catch (err) {
+        console.error("Upload avatar error:", err);
         res.status(500).json({ message: "Server error" });
     }
 });
