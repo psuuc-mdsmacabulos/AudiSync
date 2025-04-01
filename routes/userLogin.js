@@ -281,8 +281,15 @@ router.get("/profile", authenticateToken, async (req, res) => {
 router.put("/update/name", authenticateToken, async (req, res) => {
     const { name } = req.body;
 
-    if (!name) {
-        return res.status(400).json({ message: "Name is required" });
+    // Validate name
+    if (!name || name.trim().length === 0) {
+        return res.status(400).json({ message: "Name is required and cannot be empty" });
+    }
+
+    // Ensure the name has at least a first name
+    const nameParts = name.trim().split(" ");
+    if (nameParts[0].length === 0) {
+        return res.status(400).json({ message: "First name is required" });
     }
 
     try {
@@ -291,6 +298,12 @@ router.put("/update/name", authenticateToken, async (req, res) => {
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
+        }
+
+        // Check if the name is actually different
+        const currentName = `${user.first_name} ${user.last_name || ""}`.trim();
+        if (currentName === name.trim()) {
+            return res.status(200).json({ message: "No changes made to name" });
         }
 
         const [first_name, ...lastNameParts] = name.trim().split(" ");
@@ -311,8 +324,15 @@ router.put("/update/name", authenticateToken, async (req, res) => {
 router.put("/update/email", authenticateToken, async (req, res) => {
     const { email } = req.body;
 
-    if (!email) {
-        return res.status(400).json({ message: "Email is required" });
+    // Validate email presence
+    if (!email || email.trim().length === 0) {
+        return res.status(400).json({ message: "Email is required and cannot be empty" });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
     }
 
     try {
@@ -323,7 +343,12 @@ router.put("/update/email", authenticateToken, async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        user.email = email;
+        // Check if the email is actually different
+        if (user.email === email.trim()) {
+            return res.status(200).json({ message: "No changes made to email" });
+        }
+
+        user.email = email.trim();
 
         await userRepository.save(user);
 
@@ -337,8 +362,23 @@ router.put("/update/email", authenticateToken, async (req, res) => {
 router.put("/change-password", authenticateToken, async (req, res) => {
     const { current, new: newPassword } = req.body;
 
+    // Validate presence of current and new password
     if (!current || !newPassword) {
         return res.status(400).json({ message: "Current and new password are required" });
+    }
+
+    // Validate new password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+        return res.status(400).json({
+            message:
+                "New password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)",
+        });
+    }
+
+    // Check if current and new password are the same
+    if (current === newPassword) {
+        return res.status(400).json({ message: "New password must be different from the current password" });
     }
 
     try {
