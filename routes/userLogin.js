@@ -278,11 +278,11 @@ router.get("/profile", authenticateToken, async (req, res) => {
     }
 });
 
-router.put("/update", authenticateToken, async (req, res) => {
-    const { name, email } = req.body;
+router.put("/update/name", authenticateToken, async (req, res) => {
+    const { name } = req.body;
 
-    if (!name || !email) {
-        return res.status(400).json({ message: "Name and email are required" });
+    if (!name) {
+        return res.status(400).json({ message: "Name is required" });
     }
 
     try {
@@ -298,6 +298,31 @@ router.put("/update", authenticateToken, async (req, res) => {
 
         user.first_name = first_name;
         user.last_name = last_name;
+
+        await userRepository.save(user);
+
+        res.json({ message: "Profile updated successfully" });
+    } catch (err) {
+        console.error("Update profile error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.put("/update/email", authenticateToken, async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+
+    try {
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: req.user.userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
         user.email = email;
 
         await userRepository.save(user);
