@@ -286,9 +286,11 @@ router.put("/update/name", authenticateToken, async (req, res) => {
         return res.status(400).json({ message: "Name is required and cannot be empty" });
     }
 
-    // Ensure the name has at least a first name
-    const nameParts = name.trim().split(" ");
-    if (nameParts[0].length === 0) {
+    // Split the name into parts
+    const nameParts = name.trim().split(/\s+/); // Split by any whitespace (handles multiple spaces)
+
+    // Ensure there is at least a first name
+    if (nameParts.length === 0 || nameParts[0].length === 0) {
         return res.status(400).json({ message: "First name is required" });
     }
 
@@ -300,17 +302,38 @@ router.put("/update/name", authenticateToken, async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
+        // Determine first_name and last_name
+        let first_name, last_name;
+
+        if (nameParts.length === 1) {
+            // Only first name provided (e.g., "John")
+            first_name = nameParts[0];
+            last_name = "";
+        } else if (nameParts.length === 2) {
+            // First name with one word and a last name (e.g., "John Smith")
+            first_name = nameParts[0];
+            last_name = nameParts[1];
+        } else if (nameParts.length === 3) {
+            // First name with two words and a last name (e.g., "John Paul Smith")
+            first_name = `${nameParts[0]} ${nameParts[1]}`; // Combine first two words as first_name
+            last_name = nameParts[2];
+        } else {
+            // More than three words (e.g., "John Paul Smith Jr")
+            first_name = `${nameParts[0]} ${nameParts[1]}`; // First two words as first_name
+            last_name = nameParts.slice(2).join(" "); // Everything else as last_name
+        }
+
         // Check if the name is actually different
         const currentName = `${user.first_name} ${user.last_name || ""}`.trim();
-        if (currentName === name.trim()) {
+        const newName = `${first_name} ${last_name}`.trim();
+
+        if (currentName === newName) {
             return res.status(200).json({ message: "No changes made to name" });
         }
 
-        const [first_name, ...lastNameParts] = name.trim().split(" ");
-        const last_name = lastNameParts.join(" ") || "";
-
+        // Update user fields
         user.first_name = first_name;
-        user.last_name = last_name;
+        user.last_name = last_name || ""; // Set to empty string if no last name
 
         await userRepository.save(user);
 
