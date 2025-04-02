@@ -12,7 +12,6 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-
 const router = express.Router();
 
 const storage = multer.diskStorage({
@@ -27,22 +26,57 @@ const storage = multer.diskStorage({
         cb(null, `${Date.now()}-${file.originalname}`);
     },
 });
-  
-  const upload = multer({
+
+const upload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
     fileFilter: (req, file, cb) => {
-      const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
-      if (allowedMimeTypes.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error("Invalid file type. Only JPEG, PNG, and WEBP are allowed."));
-      }
+        const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+        if (allowedMimeTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error("Invalid file type. Only JPEG, PNG, and WEBP are allowed."));
+        }
     },
-  });
-  
+});
 
-  router.post("/", upload.single('image'), async (req, res) => {
+// Create a new category
+router.post("/categories", authMiddleware, async (req, res) => {
+    const { name } = req.body;
+
+    try {
+        const categoryRepository = AppDataSource.getRepository(Category);
+
+        // Validate input
+        if (!name || typeof name !== "string" || name.trim() === "") {
+            return res.status(400).json({ message: "Category name is required and must be a non-empty string" });
+        }
+
+        // Check if category already exists (since name is unique)
+        const existingCategory = await categoryRepository.findOne({ where: { name: name.trim() } });
+        if (existingCategory) {
+            return res.status(400).json({ message: "Category with this name already exists" });
+        }
+
+        // Create new category
+        const category = new Category();
+        category.name = name.trim();
+
+        // Save category to the database
+        const savedCategory = await categoryRepository.save(category);
+
+        res.status(201).json({
+            message: "Category created successfully",
+            category: savedCategory,
+            created_by: `${req.user.first_name} ${req.user.last_name}`,
+        });
+    } catch (error) {
+        console.error("Error creating category:", error.message);
+        res.status(500).json({ message: `Error creating category: ${error.message}` });
+    }
+});
+
+router.post("/", upload.single('image'), async (req, res) => {
     let { name, description, price, quantity, category_id, imageUrl } = req.body;
 
     try {
@@ -157,6 +191,45 @@ router.post("/:id/discount", authMiddleware, async (req, res) => {
     }
 });
 
+// Update a category
+router.put("/categories/:id", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    try {
+        const categoryRepository = AppDataSource.getRepository(Category);
+        const category = await categoryRepository.findOne({ where: { id: parseInt(id) } });
+
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Validate input
+        if (!name || typeof name !== "string" || name.trim() === "") {
+            return res.status(400).json({ message: "Category name is required and must be a non-empty string" });
+        }
+
+        // Check for duplicate name (excluding the current category)
+        const existingCategory = await categoryRepository.findOne({ where: { name: name.trim() } });
+        if (existingCategory && existingCategory.id !== parseInt(id)) {
+            return res.status(400).json({ message: "Category with this name already exists" });
+        }
+
+        // Update category
+        category.name = name.trim();
+        const updatedCategory = await categoryRepository.save(category);
+
+        res.json({
+            message: "Category updated successfully",
+            category: updatedCategory,
+            updated_by: `${req.user.first_name} ${req.user.last_name}`,
+        });
+    } catch (error) {
+        console.error("Error updating category:", error.message);
+        res.status(500).json({ message: `Error updating category: ${error.message}` });
+    }
+});
+
 router.put("/update/:id", authMiddleware, upload.single('image'), async (req, res) => {
     const { id } = req.params;
     const { name, description, price, quantity, category_id, imageUrl, is_active } = req.body;
@@ -232,7 +305,7 @@ router.get("/", async (req, res) => {
         const productRepository = AppDataSource.getRepository(Product);
         const products = await productRepository.find({
             where: { deleted_at: IsNull() },
-            relations: ["discounts"], // Include discounts relationship
+            relations: ["discounts"], 
         });
 
         res.json(products);
@@ -254,7 +327,6 @@ router.get("/deleted", async (req, res) => {
         res.status(500).json({ message: "Error fetching products" });
     }
 });
-
 
 // Get all active products (is_active)
 router.get("/active", async (req, res) => {
@@ -366,6 +438,38 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error deleting product" });
+    }
+});
+
+// Delete a category (hard delete)
+router.delete("/categories/:id", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const categoryRepository = AppDataSource.getRepository(Category);
+        const category = await categoryRepository.findOne({ where: { id: parseInt(id) } });
+
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Check if category has associated products
+        const productRepository = AppDataSource.getRepository(Product);
+        const productsInCategory = await productRepository.count({ where: { category_id: parseInt(id) } });
+        if (productsInCategory > 0) {
+            return res.status(400).json({ message: "Cannot delete category with associated products" });
+        }
+
+        // Hard delete the category
+        await categoryRepository.remove(category);
+
+        res.json({
+            message: "Category deleted successfully",
+            deleted_by: `${req.user.first_name} ${req.user.last_name}`,
+        });
+    } catch (error) {
+        console.error("Error deleting category:", error.message);
+        res.status(500).json({ message: `Error deleting category: ${error.message}` });
     }
 });
 
