@@ -32,7 +32,7 @@ __decorate([
 ], Discount.prototype, "start_date", void 0);
 __decorate([
     Column({ type: "timestamp", nullable: true }),
-    __metadata("design:type", Date)
+    __metadata("design:type", Object)
 ], Discount.prototype, "end_date", void 0);
 __decorate([
     Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" }),
@@ -42,6 +42,10 @@ __decorate([
     Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" }),
     __metadata("design:type", Date)
 ], Discount.prototype, "updated_at", void 0);
+__decorate([
+    Column({ type: "enum", enum: ["active", "inactive"], default: "active" }),
+    __metadata("design:type", String)
+], Discount.prototype, "status", void 0);
 __decorate([
     ManyToOne(() => Product, (product) => product.discounts, { onDelete: "CASCADE" }),
     JoinColumn({ name: "product_id" }),
