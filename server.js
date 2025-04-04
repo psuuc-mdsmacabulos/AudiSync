@@ -7,6 +7,8 @@ import orderRoutes from "./routes/orderRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import createUser from "./routes/createUser.js";
 import discountRoutes from "./routes/discountRoutes.js";
+import expensesRoutes from "./routes/expensesRoutes.js";
+import expensesCategoryRoutes from "./routes/expensesCategoryRoutes.js";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -41,6 +43,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/discounts", discountRoutes);
+app.use("/api/expenses", expensesRoutes);
+app.use("/api/expensescategory", expensesCategoryRoutes);
 app.use('/uploads', express.static(path.join('public', 'uploads')));
 
 

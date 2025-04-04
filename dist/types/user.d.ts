@@ -1,4 +1,5 @@
 import Cart from "./cart.js";
+import Expense from "./expenses.js";
 declare class User {
     id: number;
     avatar: string;
@@ -13,5 +14,6 @@ declare class User {
     deleted_at: Date | null;
     updateTimestamp(): void;
     carts: Cart[];
+    expenses: Expense[];
 }
 export default User;

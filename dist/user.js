@@ -9,6 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { Entity, PrimaryGeneratedColumn, Column, BeforeUpdate, OneToMany } from "typeorm";
 import Cart from "./cart.js";
+import Expense from "./expenses.js";
 let User = class User {
     updateTimestamp() {
         this.updated_at = new Date();
@@ -68,6 +69,10 @@ __decorate([
     OneToMany(() => Cart, (cart) => cart.user),
     __metadata("design:type", Array)
 ], User.prototype, "carts", void 0);
+__decorate([
+    OneToMany(() => Expense, (expense) => expense.recorded_by),
+    __metadata("design:type", Array)
+], User.prototype, "expenses", void 0);
 User = __decorate([
     Entity("users")
 ], User);

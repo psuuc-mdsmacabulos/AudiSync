@@ -8,6 +8,8 @@ import Order from "../dist/order.js";
 import Category from "../dist/category.js";
 import Discount from "../dist/discounts.js";
 import OrderItem from "../dist/order_item.js";
+import Expense from "../dist/expenses.js";
+import ExpenseCategory from "../dist/expenseCategory.js";
 
 dotenv.config();
 
@@ -18,7 +20,7 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    entities: [User, Cart, Product, Order, Category, Discount, OrderItem],  
+    entities: [User, Cart, Product, Order, Category, Discount, OrderItem, Expense, ExpenseCategory],  
     synchronize: true,  
 });
 
