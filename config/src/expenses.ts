@@ -64,4 +64,5 @@ class Expense {
     updated_at!: Date;
 }
 
+
 export default Expense;
