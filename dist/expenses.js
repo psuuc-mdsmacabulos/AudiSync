@@ -73,10 +73,6 @@ __decorate([
     __metadata("design:type", Object)
 ], Expense.prototype, "recurrence_interval", void 0);
 __decorate([
-    Column({ type: "varchar", length: 50, nullable: true }),
-    __metadata("design:type", Object)
-], Expense.prototype, "pos_transaction_id", void 0);
-__decorate([
     ManyToOne(() => ExpenseCategory, { onDelete: "SET NULL" }),
     JoinColumn({ name: "category_id" }),
     __metadata("design:type", Object)

@@ -16,7 +16,6 @@ declare class Expense {
     vendor: string | null;
     is_recurring: boolean;
     recurrence_interval: "daily" | "weekly" | "monthly" | "yearly" | null;
-    pos_transaction_id: string | null;
     category: ExpenseCategory | null;
     recorded_by: User | null;
     created_at: Date;

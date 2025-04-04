@@ -49,9 +49,6 @@ class Expense {
     @Column({ type: "enum", enum: ["daily", "weekly", "monthly", "yearly"], nullable: true })
     recurrence_interval!: "daily" | "weekly" | "monthly" | "yearly" | null;
 
-    @Column({ type: "varchar", length: 50, nullable: true })
-    pos_transaction_id!: string | null;
-
     @ManyToOne(() => ExpenseCategory, { onDelete: "SET NULL" })
     @JoinColumn({ name: "category_id" })
     category!: ExpenseCategory | null;
