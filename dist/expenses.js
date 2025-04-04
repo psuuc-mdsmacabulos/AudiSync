@@ -83,7 +83,7 @@ __decorate([
     __metadata("design:type", Object)
 ], Expense.prototype, "recorded_by", void 0);
 __decorate([
-    CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" }),
+    CreateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" }),
     __metadata("design:type", Date)
 ], Expense.prototype, "created_at", void 0);
 __decorate([

@@ -57,7 +57,7 @@ class Expense {
     @JoinColumn({ name: "user_id" })
     recorded_by!: User | null;
 
-    @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+    @CreateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
     created_at!: Date;
 
     @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" })
