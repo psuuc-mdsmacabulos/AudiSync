@@ -69,7 +69,7 @@ router.post("/", authMiddleware, async (req, res) => {
         expense.amount = parseFloat(amount);
         expense.quantity = quantity ? parseInt(quantity) : null;
         expense.tax_amount = tax_amount ? parseFloat(tax_amount) : 0;
-        expense.total_amount = expense.amount + (expense.tax_amount || 0); // Calculate total_amount
+        expense.total_amount = expense.amount + (expense.tax_amount || 0);
         expense.invoice_number = invoice_number || null;
         expense.notes = notes || null;
         expense.status = status || "pending";
@@ -80,6 +80,7 @@ router.post("/", authMiddleware, async (req, res) => {
         expense.recurrence_interval = is_recurring ? recurrence_interval : null;
         expense.pos_transaction_id = pos_transaction_id || null;
         expense.recorded_by = user;
+        // created_at and updated_at are set in the Expense constructor
 
         if (category_id) {
             const category = await categoryRepository.findOne({ where: { id: parseInt(category_id) } });
@@ -90,7 +91,7 @@ router.post("/", authMiddleware, async (req, res) => {
         }
 
         const savedExpense = await expenseRepository.save(expense);
-        res.status(201).json(savedExpense);
+        res.status(201).json({ message: "Expense created successfully", data: savedExpense });
     } catch (error) {
         res.status(500).json({ message: "Error creating expense", error: error.message });
     }
@@ -122,7 +123,7 @@ router.get("/", authMiddleware, async (req, res) => {
             relations: ["category", "recorded_by"],
         });
 
-        res.json(expenses);
+        res.json({ message: "Expenses retrieved successfully", data: expenses });
     } catch (error) {
         res.status(500).json({ message: "Error fetching expenses", error: error.message });
     }
@@ -141,7 +142,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
             return res.status(404).json({ message: "Expense not found" });
         }
 
-        res.json(expense);
+        res.json({ message: "Expense retrieved successfully", data: expense });
     } catch (error) {
         res.status(500).json({ message: "Error fetching expense", error: error.message });
     }
@@ -206,7 +207,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         expense.amount = amount ? parseFloat(amount) : expense.amount;
         expense.quantity = quantity !== undefined ? (quantity ? parseInt(quantity) : null) : expense.quantity;
         expense.tax_amount = tax_amount !== undefined ? (tax_amount ? parseFloat(tax_amount) : 0) : expense.tax_amount;
-        expense.total_amount = (amount ? parseFloat(amount) : expense.amount) + (tax_amount !== undefined ? (tax_amount ? parseFloat(tax_amount) : 0) : expense.tax_amount); // Recalculate total_amount
+        expense.total_amount = (amount ? parseFloat(amount) : expense.amount) + (tax_amount !== undefined ? (tax_amount ? parseFloat(tax_amount) : 0) : expense.tax_amount);
         expense.invoice_number = invoice_number !== undefined ? invoice_number : expense.invoice_number;
         expense.notes = notes !== undefined ? notes : expense.notes;
         expense.status = status || expense.status;
@@ -216,6 +217,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         expense.is_recurring = is_recurring !== undefined ? is_recurring : expense.is_recurring;
         expense.recurrence_interval = is_recurring !== undefined ? (is_recurring ? recurrence_interval : null) : expense.recurrence_interval;
         expense.pos_transaction_id = pos_transaction_id !== undefined ? pos_transaction_id : expense.pos_transaction_id;
+        expense.updated_at = new Date(); // Manually update updated_at
 
         if (category_id !== undefined) {
             const category = await categoryRepository.findOne({ where: { id: parseInt(category_id) } });
@@ -226,7 +228,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
         }
 
         const updatedExpense = await expenseRepository.save(expense);
-        res.json(updatedExpense);
+        res.json({ message: "Expense updated successfully", data: updatedExpense });
     } catch (error) {
         res.status(500).json({ message: "Error updating expense", error: error.message });
     }
@@ -243,7 +245,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
         }
 
         await expenseRepository.remove(expense);
-        res.status(204).send();
+        res.status(204).json({ message: "Expense deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error deleting expense", error: error.message });
     }

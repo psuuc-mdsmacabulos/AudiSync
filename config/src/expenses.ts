@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn} from "typeorm";
 import ExpenseCategory from "./expenseCategory.js";
 import User from "./user.js";
 
@@ -54,12 +54,21 @@ class Expense {
     @JoinColumn({ name: "user_id" })
     recorded_by!: User | null;
 
-    @CreateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" })
-    created_at!: Date;
+    @Column({ type: "timestamp", nullable: true })
+    created_at;
 
-    @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" })
-    updated_at!: Date;
+    @Column({ type: "timestamp", nullable: true })
+    updated_at;
+
+    constructor() {
+        const now = new Date();
+        this.created_at = now;
+        this.updated_at = now;
+    }
+
+    beforeUpdate() {
+        this.updated_at = new Date();
+    }
 }
-
 
 export default Expense;

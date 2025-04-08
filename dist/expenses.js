@@ -7,10 +7,18 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from "typeorm";
 import ExpenseCategory from "./expenseCategory.js";
 import User from "./user.js";
 let Expense = class Expense {
+    constructor() {
+        const now = new Date();
+        this.created_at = now;
+        this.updated_at = now;
+    }
+    beforeUpdate() {
+        this.updated_at = new Date();
+    }
 };
 __decorate([
     PrimaryGeneratedColumn(),
@@ -79,15 +87,16 @@ __decorate([
     __metadata("design:type", Object)
 ], Expense.prototype, "recorded_by", void 0);
 __decorate([
-    CreateDateColumn({ type: "datetime", default: () => "CURRENT_TIMESTAMP" }),
-    __metadata("design:type", Date)
+    Column({ type: "timestamp", nullable: true }),
+    __metadata("design:type", Object)
 ], Expense.prototype, "created_at", void 0);
 __decorate([
-    UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", onUpdate: "CURRENT_TIMESTAMP" }),
-    __metadata("design:type", Date)
+    Column({ type: "timestamp", nullable: true }),
+    __metadata("design:type", Object)
 ], Expense.prototype, "updated_at", void 0);
 Expense = __decorate([
-    Entity("expenses")
+    Entity("expenses"),
+    __metadata("design:paramtypes", [])
 ], Expense);
 export default Expense;
 //# sourceMappingURL=expenses.js.map

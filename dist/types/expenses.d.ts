@@ -19,5 +19,7 @@ declare class Expense {
     recorded_by: User | null;
     created_at: Date;
     updated_at: Date;
+    constructor();
+    beforeUpdate(): void;
 }
 export default Expense;
