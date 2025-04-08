@@ -1,7 +1,7 @@
 import express from "express";
-import { AppDataSource } from "../config/data-source.js";
-import Order from "../dist/order.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import { AppDataSource } from "../../config/data-source.js";
+import Order from "../../dist/order.js";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 

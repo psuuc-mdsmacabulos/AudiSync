@@ -1,7 +1,7 @@
 import express from "express";
-import { AppDataSource } from "../config/data-source.js";
-import ExpenseCategory from "../dist/expenseCategory.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import { AppDataSource } from "../../config/data-source.js";
+import ExpenseCategory from "../../dist/expenseCategory.js";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 import { Like } from "typeorm";
 
 const router = express.Router();

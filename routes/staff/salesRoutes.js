@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
-import { AppDataSource } from "../config/data-source.js";
-import Sale from "../dist/sale.js";
+import { AppDataSource } from "../../config/data-source.js";
+import Sale from "../../dist/sale.js";
 
 
 dotenv.config();

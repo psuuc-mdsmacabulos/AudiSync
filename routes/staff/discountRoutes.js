@@ -1,8 +1,8 @@
 import express from "express";
-import { AppDataSource } from "../config/data-source.js";
-import Discount from "../dist/discounts.js";
-import Product from "../dist/products.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import { AppDataSource } from "../../config/data-source.js";
+import Discount from "../../dist/discounts.js";
+import Product from "../../dist/products.js";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 

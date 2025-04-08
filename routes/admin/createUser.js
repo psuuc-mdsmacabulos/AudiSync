@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { AppDataSource } from "../config/data-source.js";
-import User from "../dist/user.js";
+import { AppDataSource } from "../../config/data-source.js";
+import User from "../../dist/user.js";
 
 const router = Router();
 

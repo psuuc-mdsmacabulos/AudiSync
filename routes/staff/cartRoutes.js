@@ -1,12 +1,12 @@
 import express from "express";
-import { AppDataSource } from "../config/data-source.js";
-import Cart from "../dist/cart.js";
-import User from "../dist/user.js";
-import Order from "../dist/order.js";
-import Product from "../dist/products.js";
-import Discount from "../dist/discounts.js";
-import OrderItem from "../dist/order_item.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import { AppDataSource } from "../../config/data-source.js";
+import Cart from "../../dist/cart.js";
+import User from "../../dist/user.js";
+import Order from "../../dist/order.js";
+import Product from "../../dist/products.js";
+import Discount from "../../dist/discounts.js";
+import OrderItem from "../../dist/order_item.js";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from "typeorm";
 
 const router = express.Router();

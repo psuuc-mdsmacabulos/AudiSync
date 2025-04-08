@@ -1,9 +1,9 @@
 import express from "express";
-import { AppDataSource } from "../config/data-source.js";
-import Expense from "../dist/expenses.js";
-import ExpenseCategory from "../dist/expenseCategory.js";
-import User from "../dist/user.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import { AppDataSource } from "../../config/data-source.js";
+import Expense from "../../dist/expenses.js";
+import ExpenseCategory from "../../dist/expenseCategory.js";
+import User from "../../dist/user.js";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 import { Between } from "typeorm";
 
 const router = express.Router();
