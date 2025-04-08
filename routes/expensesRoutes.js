@@ -24,7 +24,6 @@ router.post("/", authMiddleware, async (req, res) => {
             notes,
             status,
             payment_status,
-            date,
             payment_method,
             vendor,
             is_recurring,
@@ -39,9 +38,6 @@ router.post("/", authMiddleware, async (req, res) => {
         }
         if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
             return res.status(400).json({ message: "Amount must be a positive number" });
-        }
-        if (!date) {
-            return res.status(400).json({ message: "Date is required" });
         }
         if (!["cash", "credit_card", "bank_transfer", "check"].includes(payment_method)) {
             return res.status(400).json({ message: "Invalid payment method" });
@@ -78,7 +74,6 @@ router.post("/", authMiddleware, async (req, res) => {
         expense.notes = notes || null;
         expense.status = status || "pending";
         expense.payment_status = payment_status || "pending";
-        expense.date = new Date(date);
         expense.payment_method = payment_method;
         expense.vendor = vendor || null;
         expense.is_recurring = is_recurring || false;
@@ -113,7 +108,7 @@ router.get("/", authMiddleware, async (req, res) => {
             query.category = { id: parseInt(category_id) };
         }
         if (start_date && end_date) {
-            query.date = Between(new Date(start_date), new Date(end_date));
+            query.created_at = Between(new Date(start_date), new Date(end_date));
         }
         if (status) {
             query.status = status;
@@ -172,7 +167,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
             notes,
             status,
             payment_status,
-            date,
             payment_method,
             vendor,
             is_recurring,
@@ -217,7 +211,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
         expense.notes = notes !== undefined ? notes : expense.notes;
         expense.status = status || expense.status;
         expense.payment_status = payment_status || expense.payment_status;
-        expense.date = date ? new Date(date) : expense.date;
         expense.payment_method = payment_method || expense.payment_method;
         expense.vendor = vendor !== undefined ? vendor : expense.vendor;
         expense.is_recurring = is_recurring !== undefined ? is_recurring : expense.is_recurring;

@@ -53,10 +53,6 @@ __decorate([
     __metadata("design:type", String)
 ], Expense.prototype, "payment_status", void 0);
 __decorate([
-    Column({ type: "date" }),
-    __metadata("design:type", Date)
-], Expense.prototype, "date", void 0);
-__decorate([
     Column({ type: "enum", enum: ["cash", "credit_card", "bank_transfer", "check"], default: "cash" }),
     __metadata("design:type", String)
 ], Expense.prototype, "payment_method", void 0);

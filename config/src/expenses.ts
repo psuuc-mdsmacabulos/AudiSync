@@ -34,9 +34,6 @@ class Expense {
     @Column({ type: "enum", enum: ["pending", "paid", "overdue"], default: "pending" })
     payment_status!: "pending" | "paid" | "overdue";
 
-    @Column({ type: "date" })
-    date!: Date;
-
     @Column({ type: "enum", enum: ["cash", "credit_card", "bank_transfer", "check"], default: "cash" })
     payment_method!: "cash" | "credit_card" | "bank_transfer" | "check";
 

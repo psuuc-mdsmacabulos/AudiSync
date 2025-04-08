@@ -11,7 +11,6 @@ declare class Expense {
     notes: string | null;
     status: "pending" | "approved" | "rejected";
     payment_status: "pending" | "paid" | "overdue";
-    date: Date;
     payment_method: "cash" | "credit_card" | "bank_transfer" | "check";
     vendor: string | null;
     is_recurring: boolean;
