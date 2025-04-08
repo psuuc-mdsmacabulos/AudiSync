@@ -64,6 +64,10 @@ __decorate([
     __metadata("design:type", Date)
 ], Order.prototype, "created_at", void 0);
 __decorate([
+    Column({ type: "varchar", default: "pending" }),
+    __metadata("design:type", String)
+], Order.prototype, "kitchenStatus", void 0);
+__decorate([
     OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true }),
     __metadata("design:type", Array)
 ], Order.prototype, "orderItems", void 0);

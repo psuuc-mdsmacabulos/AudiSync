@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import  OrderItem from "./order_item.js";
+import OrderItem from "./order_item.js";
 
 @Entity("orders")
- class Order {
+class Order {
     @PrimaryGeneratedColumn()
     id!: number;
 
@@ -42,7 +42,10 @@ import  OrderItem from "./order_item.js";
     @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
     created_at!: Date;
 
-    @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true }) // Relation to OrderItem
+    @Column({ type: "varchar", default: "pending" })
+    kitchenStatus!: string;
+
+    @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true }) 
     orderItems!: OrderItem[];
 }
 

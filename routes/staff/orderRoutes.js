@@ -7,22 +7,18 @@ const router = express.Router();
 
 // Get all orders with filtering (excluding "cancelled" orders by default)
 router.get("/", authMiddleware, async (req, res) => {
-    const { search, order_type, date, payment_method, status, status_not } = req.query;
+    const { search, order_type, date, payment_method, status, status_not, kitchenStatus } = req.query;
 
     try {
         const orderRepository = AppDataSource.getRepository(Order);
         
-        // Build the query using TypeORM's query builder
         const query = orderRepository
             .createQueryBuilder("order")
             .leftJoinAndSelect("order.orderItems", "orderItems")
             .leftJoinAndSelect("orderItems.product", "product")
-            // Ensure we bypass cache to get the latest data
             .cache(false)
-            // Exclude "cancelled" orders by default
             .andWhere("LOWER(order.status) != LOWER(:cancelled)", { cancelled: "cancelled" });
 
-        // Combined search for id, customer_name, or staff_name
         if (search) {
             query.andWhere(
                 `(order.id LIKE :search OR 
@@ -44,42 +40,42 @@ router.get("/", authMiddleware, async (req, res) => {
             query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
         }
 
-        // Filter by status (exact match) - overrides the default exclusion if specified
         if (status) {
             query.andWhere("LOWER(order.status) = LOWER(:status)", { status });
         }
 
-        // Exclude orders with a specific status
         if (status_not) {
             query.andWhere("LOWER(order.status) != LOWER(:status_not)", { status_not });
         }
 
+        // Add filter for kitchenStatus
+        if (kitchenStatus) {
+            query.andWhere("LOWER(order.kitchenStatus) = LOWER(:kitchenStatus)", { kitchenStatus });
+        }
+
         const orders = await query.getMany();
 
-        // Set headers to prevent caching
         res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
         res.json(orders);
     } catch (error) {
+        console.error("Error fetching orders:", error);
         res.status(500).json({ message: "Error fetching orders" });
     }
 });
 
-// Get all orders with filtering
+// Get all orders with filtering (for cancelled orders)
 router.get("/cancelled/", authMiddleware, async (req, res) => {
-    const { search, order_type, date, payment_method, status, status_not } = req.query;
+    const { search, order_type, date, payment_method, status, status_not, kitchenStatus } = req.query;
 
     try {
         const orderRepository = AppDataSource.getRepository(Order);
         
-        // Build the query using TypeORM's query builder
         const query = orderRepository
             .createQueryBuilder("order")
             .leftJoinAndSelect("order.orderItems", "orderItems")
             .leftJoinAndSelect("orderItems.product", "product")
-            // Ensure we bypass cache to get the latest data
             .cache(false);
 
-        // Combined search for id, customer_name, or staff_name
         if (search) {
             query.andWhere(
                 `(order.id LIKE :search OR 
@@ -101,99 +97,42 @@ router.get("/cancelled/", authMiddleware, async (req, res) => {
             query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
         }
 
-        // Filter by status (exact match)
         if (status) {
             query.andWhere("LOWER(order.status) = LOWER(:status)", { status });
         }
 
-        // Exclude orders with a specific status
         if (status_not) {
             query.andWhere("LOWER(order.status) != LOWER(:status_not)", { status_not });
         }
 
-        const orders = await query.getMany();
-
-        // Set headers to prevent caching
-        res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-        res.json(orders);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching orders" });
-    }
-});
-
-// Get all orders with filtering
-router.get("/cancelled/", authMiddleware, async (req, res) => {
-    const { search, order_type, date, payment_method, status, status_not } = req.query;
-
-    try {
-        const orderRepository = AppDataSource.getRepository(Order);
-        
-        // Build the query using TypeORM's query builder
-        const query = orderRepository
-            .createQueryBuilder("order")
-            .leftJoinAndSelect("order.orderItems", "orderItems")
-            .leftJoinAndSelect("orderItems.product", "product")
-            // Ensure we bypass cache to get the latest data
-            .cache(false);
-
-        // Combined search for id, customer_name, or staff_name
-        if (search) {
-            query.andWhere(
-                `(order.id LIKE :search OR 
-                LOWER(order.customer_name) LIKE LOWER(:search) OR 
-                LOWER(order.staff_name) LIKE LOWER(:search))`,
-                { search: `%${search}%` }
-            );
-        }
-
-        if (order_type) {
-            query.andWhere("LOWER(order.order_type) = LOWER(:order_type)", { order_type });
-        }
-
-        if (date) {
-            query.andWhere("DATE(order.created_at) = :date", { date });
-        }
-
-        if (payment_method) {
-            query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
-        }
-
-        // Filter by status (exact match)
-        if (status) {
-            query.andWhere("LOWER(order.status) = LOWER(:status)", { status });
-        }
-
-        // Exclude orders with a specific status
-        if (status_not) {
-            query.andWhere("LOWER(order.status) != LOWER(:status_not)", { status_not });
+        // Add filter for kitchenStatus
+        if (kitchenStatus) {
+            query.andWhere("LOWER(order.kitchenStatus) = LOWER(:kitchenStatus)", { kitchenStatus });
         }
 
         const orders = await query.getMany();
 
-        // Set headers to prevent caching
         res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
         res.json(orders);
     } catch (error) {
+        console.error("Error fetching cancelled orders:", error);
         res.status(500).json({ message: "Error fetching orders" });
     }
 });
 
-// Get all orders with filtering
+// Get all orders with filtering (for ready orders)
 router.get("/ready/", authMiddleware, async (req, res) => {
-    const { search, order_type, date, payment_method, status, status_not } = req.query;
+    const { search, order_type, date, payment_method, status, status_not, kitchenStatus } = req.query;
 
     try {
         const orderRepository = AppDataSource.getRepository(Order);
         
-        // Build the query using TypeORM's query builder
         const query = orderRepository
             .createQueryBuilder("order")
             .leftJoinAndSelect("order.orderItems", "orderItems")
             .leftJoinAndSelect("orderItems.product", "product")
-            // Ensure we bypass cache to get the latest data
             .cache(false);
 
-        // Combined search for id, customer_name, or staff_name
         if (search) {
             query.andWhere(
                 `(order.id LIKE :search OR 
@@ -215,42 +154,46 @@ router.get("/ready/", authMiddleware, async (req, res) => {
             query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
         }
 
-        // Filter by status (exact match)
         if (status) {
             query.andWhere("LOWER(order.status) = LOWER(:status)", { status });
         }
 
-        // Exclude orders with a specific status
         if (status_not) {
             query.andWhere("LOWER(order.status) != LOWER(:status_not)", { status_not });
         }
 
+        // Add filter for kitchenStatus
+        if (kitchenStatus) {
+            query.andWhere("LOWER(order.kitchenStatus) = LOWER(:kitchenStatus)", { kitchenStatus });
+        }
+
         const orders = await query.getMany();
 
-        // Set headers to prevent caching
         res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
         res.json(orders);
     } catch (error) {
+        console.error("Error fetching ready orders:", error);
         res.status(500).json({ message: "Error fetching orders" });
     }
 });
 
-
-// Get all orders with filtering for kitchen (excluding "ready" and "cancelled" statuses)
+// Get all orders with filtering for kitchen (excluding "ready", "cancelled", and "completed" statuses)
 router.get("/kitchen/", authMiddleware, async (req, res) => {
-    const { search, order_type, date, payment_method } = req.query;
+    const { search, order_type, date, payment_method, kitchenStatus } = req.query;
 
     try {
         const orderRepository = AppDataSource.getRepository(Order);
         
-        // Build the query using TypeORM's query builder
         const query = orderRepository
             .createQueryBuilder("order")
             .leftJoinAndSelect("order.orderItems", "orderItems")
             .leftJoinAndSelect("orderItems.product", "product")
-            .andWhere("LOWER(order.status) NOT IN (:ready, :cancelled, :completed)", { ready: "ready", cancelled: "cancelled", completed: "completed" }); 
+            .andWhere("LOWER(order.status) NOT IN (:ready, :cancelled, :completed)", { 
+                ready: "ready", 
+                cancelled: "cancelled", 
+                completed: "completed" 
+            });
 
-        // Combined search for id, customer_name, or staff_name
         if (search) {
             query.andWhere(
                 `(order.id LIKE :search OR 
@@ -272,10 +215,16 @@ router.get("/kitchen/", authMiddleware, async (req, res) => {
             query.andWhere("LOWER(order.payment_method) = LOWER(:payment_method)", { payment_method });
         }
 
+        // Add filter for kitchenStatus
+        if (kitchenStatus) {
+            query.andWhere("LOWER(order.kitchenStatus) = LOWER(:kitchenStatus)", { kitchenStatus });
+        }
+
         const orders = await query.getMany();
 
         res.json(orders);
     } catch (error) {
+        console.error("Error fetching kitchen orders:", error);
         res.status(500).json({ message: "Error fetching orders" });
     }
 });
@@ -288,7 +237,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
         const orderRepository = AppDataSource.getRepository(Order);
         const order = await orderRepository.findOne({
             where: { id: orderId },
-            relations: ["orderItems", "orderItems.product"], // Fetch the product data along with the order items
+            relations: ["orderItems", "orderItems.product"],
         });
 
         if (!order) {
@@ -297,11 +246,12 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
         res.json(order);
     } catch (error) {
+        console.error("Error fetching order by ID:", error);
         res.status(500).json({ message: "Error fetching order" });
     }
 });
 
-// Update order status
+// Update order status (and kitchenStatus if status is "ready")
 router.patch("/:id/status", authMiddleware, async (req, res) => {
     const orderId = req.params.id;
     const { status } = req.body;
@@ -318,10 +268,20 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
             return res.status(404).json({ message: "Order not found" });
         }
 
-        await orderRepository.update(orderId, { status });
+        // Prepare the update object
+        const updateData = { status };
+
+        // If status is being set to "ready" (case-insensitive), set kitchenStatus to "completed"
+        if (status.toLowerCase() === "ready") {
+            updateData.kitchenStatus = "completed";
+        }
+
+        // Update the order with both status and potentially kitchenStatus
+        await orderRepository.update(orderId, updateData);
 
         res.json({ message: "Order status updated successfully" });
     } catch (error) {
+        console.error("Error updating order status:", error);
         res.status(500).json({ message: "Error updating order status" });
     }
 });

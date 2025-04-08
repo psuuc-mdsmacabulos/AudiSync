@@ -1,14 +1,21 @@
 import express from "express";
 import cors from "cors";
+
+// Staff Routes 
 import salesRoutes from "./routes/staff/salesRoutes.js";
 import userRoutes from "./routes/userLogin.js";
 import productRoutes from "./routes/staff/productRoutes.js";
 import orderRoutes from "./routes/staff/orderRoutes.js";
 import cartRoutes from "./routes/staff/cartRoutes.js";
-import createUser from "./routes/admin/createUser.js";
 import discountRoutes from "./routes/staff/discountRoutes.js";
 import expensesRoutes from "./routes/staff/expensesRoutes.js";
 import expensesCategoryRoutes from "./routes/staff/expensesCategoryRoutes.js";
+
+// Admin Routes
+import createUser from "./routes/admin/createUser.js";
+import analyticRoutes from "./routes/admin/analyticRoutes.js";
+
+
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -45,6 +52,7 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/expensescategory", expensesCategoryRoutes);
+app.use("/api/analytics", analyticRoutes);
 app.use('/uploads', express.static(path.join('public', 'uploads')));
 
 

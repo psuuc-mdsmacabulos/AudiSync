@@ -13,6 +13,7 @@ declare class Order {
     change: number;
     status: string;
     created_at: Date;
+    kitchenStatus: string;
     orderItems: OrderItem[];
 }
 export default Order;
