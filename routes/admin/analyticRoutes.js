@@ -27,6 +27,13 @@ const parseDateRange = (start_date, end_date, interval) => {
     console.log("Adjusted end (default):", end);
   }
 
+  // Cap the end date at the current date (Apr 22, 2025)
+  const currentDate = new Date("2025-04-22T23:59:59.999Z");
+  if (end > currentDate) {
+    end = currentDate;
+    console.log("Adjusted end (capped at current date):", end);
+  }
+
   return { start, end };
 };
 
@@ -35,7 +42,7 @@ const getDateFormat = (interval, entityAlias) => {
     case "daily":
       return `DATE(${entityAlias}.created_at)`;
     case "weekly":
-      return `DATE_FORMAT(${entityAlias}.created_at, '%Y-%U')`;
+      return `DATE_FORMAT(${entityAlias}.created_at, '%x-%v')`; // ISO week (Monday-based)
     case "monthly":
       return `DATE_FORMAT(${entityAlias}.created_at, '%Y-%m')`;
     case "yearly":
@@ -45,7 +52,61 @@ const getDateFormat = (interval, entityAlias) => {
   }
 };
 
-// Endpoint 1: Overview Statistics (Total Sales, Profits, Expenses, Orders)
+const generatePeriods = (start, end, interval) => {
+  const periods = [];
+  const current = new Date(start);
+
+  if (interval === "daily") {
+    while (current <= end) {
+      periods.push(current.toISOString().split("T")[0]);
+      current.setDate(current.getDate() + 1);
+    }
+  } else if (interval === "weekly") {
+    // Adjust start to the first Monday on or after the start date
+    while (current.getUTCDay() !== 1) { // Monday is 1
+      current.setDate(current.getDate() + 1);
+    }
+    while (current <= end) {
+      const year = current.getUTCFullYear();
+      const firstDayOfYear = new Date(Date.UTC(year, 0, 1));
+      const daysOffset = firstDayOfYear.getUTCDay() === 0 ? -6 : 1 - firstDayOfYear.getUTCDay();
+      const firstMonday = new Date(firstDayOfYear);
+      firstMonday.setDate(firstDayOfYear.getDate() + daysOffset);
+      const daysSinceFirstMonday = Math.floor((current - firstMonday) / (1000 * 60 * 60 * 24));
+      let weekNumber = Math.floor(daysSinceFirstMonday / 7) + 1;
+      // Prevent negative or zero week numbers
+      if (weekNumber <= 0) {
+        weekNumber = 1;
+      }
+      // Adjust year if the week crosses into the previous or next year
+      let periodYear = year;
+      if (current.getUTCMonth() === 0 && weekNumber > 50) {
+        periodYear = year - 1; // Week belongs to the previous year
+      } else if (current.getUTCMonth() === 11 && weekNumber === 1) {
+        periodYear = year + 1; // Week belongs to the next year
+      }
+      periods.push(`${periodYear}-${weekNumber.toString().padStart(2, "0")}`);
+      current.setDate(current.getDate() + 7);
+    }
+  } else if (interval === "monthly") {
+    while (current <= end) {
+      const year = current.getUTCFullYear();
+      const month = (current.getUTCMonth() + 1).toString().padStart(2, "0");
+      periods.push(`${year}-${month}`);
+      current.setUTCMonth(current.getUTCMonth() + 1);
+    }
+  } else if (interval === "yearly") {
+    while (current <= end) {
+      periods.push(current.getUTCFullYear().toString());
+      current.setUTCFullYear(current.getUTCFullYear() + 1);
+    }
+  }
+
+  console.log(`Generated periods for interval ${interval}:`, periods);
+  return periods;
+};
+
+// Endpoint 1: Overview Statistics
 router.get("/overview", authMiddleware, async (req, res) => {
   try {
     const orderRepository = AppDataSource.getRepository(Order);
@@ -67,21 +128,32 @@ router.get("/overview", authMiddleware, async (req, res) => {
 
     console.log(`Fetching overview statistics for ${start} to ${end}, interval: ${interval}`);
 
+    // Fetch all orders to debug status values
+    const allOrders = await orderRepository
+      .createQueryBuilder("order")
+      .select(["order.id", "order.status", "order.final_price", "order.created_at"])
+      .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .getMany();
+    console.log("All Orders (for debugging):", allOrders);
+
     const totalSalesResult = await orderRepository
       .createQueryBuilder("order")
       .select("SUM(order.final_price)", "total")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .getRawOne();
+    console.log("Total Sales Result (completed orders only):", totalSalesResult);
 
-    const totalSales = parseFloat(totalSalesResult.total || 0).toFixed(2);
+    const totalSales = parseFloat(totalSalesResult?.total || 0).toFixed(2);
 
     const totalExpensesResult = await expenseRepository
       .createQueryBuilder("expense")
       .select("SUM(expense.total_amount)", "total")
       .where("expense.created_at BETWEEN :start AND :end", { start, end })
       .getRawOne();
+    console.log("Total Expenses Result:", totalExpensesResult);
 
-    const totalExpenses = parseFloat(totalExpensesResult.total || 0).toFixed(2);
+    const totalExpenses = parseFloat(totalExpensesResult?.total || 0).toFixed(2);
 
     const totalProfits = (parseFloat(totalSales) - parseFloat(totalExpenses)).toFixed(2);
 
@@ -89,9 +161,11 @@ router.get("/overview", authMiddleware, async (req, res) => {
       .createQueryBuilder("order")
       .select("COUNT(order.id)", "total")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .getRawOne();
+    console.log("Total Orders Result (completed orders only):", totalOrdersResult);
 
-    const totalOrders = parseInt(totalOrdersResult.total || 0);
+    const totalOrders = parseInt(totalOrdersResult?.total || 0);
 
     res.json({
       message: "Overview statistics retrieved successfully",
@@ -111,7 +185,7 @@ router.get("/overview", authMiddleware, async (req, res) => {
   }
 });
 
-// Endpoint 2: Chart Data (Sales, Expenses, Profits, and Orders by Period)
+// Endpoint 2: Chart Data (Statistics)
 router.get("/statistics", authMiddleware, async (req, res) => {
   try {
     const orderRepository = AppDataSource.getRepository(Order);
@@ -139,9 +213,11 @@ router.get("/statistics", authMiddleware, async (req, res) => {
       .select(salesDateFormat, "period")
       .addSelect("SUM(order.final_price)", "total_sales")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy(salesDateFormat)
       .orderBy("period", "ASC")
       .getRawMany();
+    console.log("Statistics Sales Data (completed orders only):", salesData);
 
     const expensesDateFormat = getDateFormat(interval, "expense");
     const expensesData = await expenseRepository
@@ -152,6 +228,7 @@ router.get("/statistics", authMiddleware, async (req, res) => {
       .groupBy(expensesDateFormat)
       .orderBy("period", "ASC")
       .getRawMany();
+    console.log("Statistics Expenses Data:", expensesData);
 
     const ordersDateFormat = getDateFormat(interval, "order");
     const ordersData = await orderRepository
@@ -159,58 +236,31 @@ router.get("/statistics", authMiddleware, async (req, res) => {
       .select(ordersDateFormat, "period")
       .addSelect("COUNT(order.id)", "total_orders")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy(ordersDateFormat)
       .orderBy("period", "ASC")
       .getRawMany();
+    console.log("Statistics Orders Data (completed orders only):", ordersData);
 
-    const periods = new Set([
-      ...salesData.map((entry) => entry.period),
-      ...expensesData.map((entry) => entry.period),
-      ...ordersData.map((entry) => entry.period),
-    ]);
+    const allPeriods = generatePeriods(start, end, interval);
 
-    let chartData = [];
-    if (interval === "monthly") {
-      const year = start.getFullYear();
-      const allMonths = Array.from({ length: 12 }, (_, i) => {
-        const month = (i + 1).toString().padStart(2, "0");
-        return `${year}-${month}`;
-      });
+    const chartData = allPeriods.map((period) => {
+      const salesEntry = salesData.find((entry) => entry.period === period) || { total_sales: 0 };
+      const expensesEntry = expensesData.find((entry) => entry.period === period) || { total_expenses: 0 };
+      const ordersEntry = ordersData.find((entry) => entry.period === period) || { total_orders: 0 };
+      const totalSales = parseFloat(salesEntry.total_sales || 0);
+      const totalExpenses = parseFloat(expensesEntry.total_expenses || 0);
+      const totalProfits = totalSales - totalExpenses;
+      return {
+        period,
+        total_sales: totalSales.toFixed(2),
+        total_expenses: totalExpenses.toFixed(2),
+        total_profits: totalProfits.toFixed(2),
+        total_orders: parseInt(ordersEntry.total_orders || 0),
+      };
+    });
 
-      chartData = allMonths.map((period) => {
-        const salesEntry = salesData.find((entry) => entry.period === period) || { total_sales: 0 };
-        const expensesEntry = expensesData.find((entry) => entry.period === period) || { total_expenses: 0 };
-        const ordersEntry = ordersData.find((entry) => entry.period === period) || { total_orders: 0 };
-        const totalSales = parseFloat(salesEntry.total_sales || 0);
-        const totalExpenses = parseFloat(expensesEntry.total_expenses || 0);
-        const totalProfits = totalSales - totalExpenses;
-        return {
-          period,
-          total_sales: totalSales.toFixed(2),
-          total_expenses: totalExpenses.toFixed(2),
-          total_profits: totalProfits.toFixed(2),
-          total_orders: parseInt(ordersEntry.total_orders || 0),
-        };
-      });
-    } else {
-      chartData = Array.from(periods)
-        .sort()
-        .map((period) => {
-          const salesEntry = salesData.find((entry) => entry.period === period) || { total_sales: 0 };
-          const expensesEntry = expensesData.find((entry) => entry.period === period) || { total_expenses: 0 };
-          const ordersEntry = ordersData.find((entry) => entry.period === period) || { total_orders: 0 };
-          const totalSales = parseFloat(salesEntry.total_sales || 0);
-          const totalExpenses = parseFloat(expensesEntry.total_expenses || 0);
-          const totalProfits = totalSales - totalExpenses;
-          return {
-            period,
-            total_sales: totalSales.toFixed(2),
-            total_expenses: totalExpenses.toFixed(2),
-            total_profits: totalProfits.toFixed(2),
-            total_orders: parseInt(ordersEntry.total_orders || 0),
-          };
-        });
-    }
+    console.log("Statistics Final Chart Data:", chartData);
 
     res.json({
       message: "Chart statistics retrieved successfully",
@@ -228,11 +278,14 @@ router.get("/statistics", authMiddleware, async (req, res) => {
 });
 
 // Endpoint 3: Profits Dashboard Data
-router.get("/profits", authMiddleware, async (req, res) => {
+router.get("/profitsdash", authMiddleware, async (req, res) => {
   try {
+    if (!AppDataSource.isInitialized) {
+      throw new Error("Database connection is not initialized.");
+    }
+
     const orderRepository = AppDataSource.getRepository(Order);
     const expenseRepository = AppDataSource.getRepository(Expense);
-    const orderItemRepository = AppDataSource.getRepository(OrderItem);
     const { start_date, end_date, interval = "monthly" } = req.query;
 
     if (!["daily", "weekly", "monthly", "yearly"].includes(interval)) {
@@ -248,120 +301,111 @@ router.get("/profits", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Start date must be before end date." });
     }
 
-    console.log(`Fetching profits data for ${start} to ${end}, interval: ${interval}`);
+    console.log(`Fetching profits data for ${start.toISOString()} to ${end.toISOString()}, interval: ${interval}`);
 
-    // Total Revenue from Orders
-    const orders = await orderRepository.find({
-      where: { created_at: Between(start, end), status: "completed" },
-      relations: ["orderItems"],
-    });
-
-    let totalRevenue = 0;
-    for (const order of orders) {
-      totalRevenue += parseFloat(order.final_price || 0);
-    }
-
-    // Total Expenses
-    const expenses = await expenseRepository.find({
-      where: { created_at: Between(start, end) },
-    });
-
-    const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
-
-    // Distribute expenses proportionally to each order based on its revenue contribution
-    const revenueContribution = orders.map((order) => ({
-      order,
-      contribution: totalRevenue > 0 ? parseFloat(order.final_price || 0) / totalRevenue : 0,
-    }));
-
-    const ordersWithExpenses = revenueContribution.map(({ order, contribution }) => ({
-      order,
-      allocatedExpense: contribution * totalExpenses,
-    }));
-
-    // Calculate profit per month
-    const dateFormat = getDateFormat("monthly", "order");
-    const profitOverview = await orderRepository
+    const salesDateFormat = getDateFormat(interval, "order");
+    const salesData = await orderRepository
       .createQueryBuilder("order")
-      .select(dateFormat, "date")
-      .addSelect("SUM(order.final_price)", "revenue")
+      .select(salesDateFormat, "period")
+      .addSelect("SUM(order.final_price)", "total_sales")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
       .andWhere("order.status = :status", { status: "completed" })
-      .groupBy(dateFormat)
-      .orderBy("date", "ASC")
+      .groupBy(salesDateFormat)
+      .orderBy("period", "ASC")
       .getRawMany();
+    console.log("Profits Dashboard Sales Data:", salesData);
 
-    // Calculate expenses per month
-    const expenseByMonth = await expenseRepository
+    const expensesDateFormat = getDateFormat(interval, "expense");
+    const expensesData = await expenseRepository
       .createQueryBuilder("expense")
-      .select(dateFormat, "date")
-      .addSelect("SUM(expense.amount)", "expense")
+      .select(expensesDateFormat, "period")
+      .addSelect("SUM(expense.total_amount)", "total_expenses")
       .where("expense.created_at BETWEEN :start AND :end", { start, end })
-      .groupBy(dateFormat)
-      .orderBy("date", "ASC")
+      .groupBy(expensesDateFormat)
+      .orderBy("period", "ASC")
       .getRawMany();
+    console.log("Profits Dashboard Expenses Data:", expensesData);
 
-    // Merge revenue and expenses to calculate profit per month
-    const profitByMonth = profitOverview.map((entry) => {
-      const expenseEntry = expenseByMonth.find((exp) => exp.date === entry.date) || { expense: 0 };
-      const profit = parseFloat(entry.revenue || 0) - parseFloat(expenseEntry.expense || 0);
+    const allPeriods = generatePeriods(start, end, interval);
+    const profitByPeriod = allPeriods.map((period) => {
+      const salesEntry = salesData.find((entry) => entry.period === period) || { total_sales: 0 };
+      const expensesEntry = expensesData.find((entry) => entry.period === period) || { total_expenses: 0 };
+      const revenue = parseFloat(salesEntry.total_sales || 0);
+      const expense = parseFloat(expensesEntry.total_expenses || 0);
+      const profit = revenue - expense;
       return {
-        date: entry.date,
-        profit: profit > 0 ? profit : 0, // Ensure profit is not negative
+        date: period,
+        profit: profit >= 0 ? profit.toFixed(2) : "0.00",
       };
     });
+    console.log("Profits Dashboard Profit By Period:", profitByPeriod);
 
-    // Total Profit This Month
-    const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
+    const totalSalesResult = await orderRepository
+      .createQueryBuilder("order")
+      .select("SUM(order.final_price)", "total")
+      .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
+      .getRawOne();
+    const totalSales = parseFloat(totalSalesResult?.total || 0);
+
+    const totalExpensesResult = await expenseRepository
+      .createQueryBuilder("expense")
+      .select("SUM(expense.total_amount)", "total")
+      .where("expense.created_at BETWEEN :start AND :end", { start, end })
+      .getRawOne();
+    const totalExpenses = parseFloat(totalExpensesResult?.total || 0);
+
+    const totalProfits = totalSales - totalExpenses;
+
+    const currentMonthStart = new Date(2025, 3, 1);
     currentMonthStart.setHours(0, 0, 0, 0);
-    const currentMonthEnd = new Date();
-    currentMonthEnd.setMonth(currentMonthEnd.getMonth() + 1, 0);
+    const currentMonthEnd = new Date(2025, 3, 22);
     currentMonthEnd.setHours(23, 59, 59, 999);
 
-    const currentMonthOrders = await orderRepository.find({
-      where: {
-        created_at: Between(currentMonthStart, currentMonthEnd),
-        status: "completed",
-      },
-      relations: ["orderItems"],
-    });
+    const currentMonthOrders = await orderRepository
+      .createQueryBuilder("order")
+      .select("SUM(order.final_price)", "total")
+      .where("order.created_at BETWEEN :start AND :end", { start: currentMonthStart, end: currentMonthEnd })
+      .andWhere("order.status = :status", { status: "completed" })
+      .getRawOne();
+    const currentMonthRevenue = parseFloat(currentMonthOrders?.total || 0);
+    console.log("Current Month Orders (Apr 2025):", currentMonthOrders, "Revenue:", currentMonthRevenue);
 
-    let currentMonthRevenue = 0;
-    for (const order of currentMonthOrders) {
-      currentMonthRevenue += parseFloat(order.final_price || 0);
-    }
-
-    const currentMonthExpenses = await expenseRepository.find({
-      where: { created_at: Between(currentMonthStart, currentMonthEnd) },
-    });
-
-    const currentMonthTotalExpenses = currentMonthExpenses.reduce(
-      (sum, expense) => sum + parseFloat(expense.amount || 0),
-      0
-    );
+    const currentMonthExpenses = await expenseRepository
+      .createQueryBuilder("expense")
+      .select("SUM(expense.total_amount)", "total")
+      .where("expense.created_at BETWEEN :start AND :end", { start: currentMonthStart, end: currentMonthEnd })
+      .getRawOne();
+    const currentMonthTotalExpenses = parseFloat(currentMonthExpenses?.total || 0);
+    console.log("Current Month Expenses (Apr 2025):", currentMonthExpenses, "Total:", currentMonthTotalExpenses);
 
     const totalProfitThisMonth = currentMonthRevenue - currentMonthTotalExpenses;
 
-    // Highest Profit (max profit in any month)
-    const highestProfit = profitByMonth.reduce(
-      (max, entry) => Math.max(max, parseFloat(entry.profit || 0)),
-      0
-    );
+    let highestProfit = "0.00";
+    let highestProfitMonth = "";
+    profitByPeriod.forEach((entry) => {
+      const profit = parseFloat(entry.profit);
+      if (profit > parseFloat(highestProfit)) {
+        highestProfit = profit.toFixed(2);
+        highestProfitMonth = entry.date;
+      }
+    });
 
     res.json({
       message: "Profits data retrieved successfully",
       data: {
-        profit_overview: profitByMonth.map((entry) => ({
-          date: entry.date,
-          profit: parseFloat(entry.profit || 0).toFixed(2),
-        })),
-        total_profit_this_month: totalProfitThisMonth > 0 ? totalProfitThisMonth.toFixed(2) : "0.00",
-        highest_profit: highestProfit.toFixed(2),
+        profit_overview: profitByPeriod,
+        total_profits: totalProfits.toFixed(2),
+        total_profit_this_month: totalProfitThisMonth >= 0 ? totalProfitThisMonth.toFixed(2) : "0.00",
+        highest_profit: highestProfit,
+        highest_profit_month: highestProfitMonth,
+        interval,
+        start_date: start.toISOString().split("T")[0],
+        end_date: end.toISOString().split("T")[0],
       },
     });
   } catch (error) {
-    console.error("Error in /profits endpoint:", error.stack);
+    console.error("Error in /profitsdash endpoint:", error.stack);
     res.status(500).json({ message: "Error fetching profits data", error: error.message });
   }
 });
@@ -385,26 +429,34 @@ router.get("/sales", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Start date must be before end date." });
     }
 
-    console.log(`Fetching sales data for ${start} to ${end}, interval: ${interval}`);
+    console.log(`Fetching sales data for ${start.toISOString()} to ${end.toISOString()}, interval: ${interval}`);
 
-    // Sales Overview (Monthly Sales for the Year)
-    const dateFormat = getDateFormat("monthly", "order");
+    // Debug: Fetch all orders in the date range to check status
+    const allOrders = await orderRepository
+      .createQueryBuilder("order")
+      .select(["order.id", "order.status", "order.final_price", "order.created_at", "order.order_type", "order.payment_method"])
+      .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .getMany();
+    console.log("All Orders in Date Range (for debugging):", allOrders);
+
+    const dateFormat = getDateFormat(interval, "order");
     const salesOverTime = await orderRepository
       .createQueryBuilder("order")
       .select(dateFormat, "date")
       .addSelect("SUM(order.final_price)", "sales")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy(dateFormat)
       .orderBy("date", "ASC")
       .getRawMany();
+    console.log("Sales Over Time:", salesOverTime);
 
-    // Total Sales This Month
     const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
-    currentMonthStart.setHours(0, 0, 0, 0);
+    currentMonthStart.setUTCDate(1);
+    currentMonthStart.setUTCHours(0, 0, 0, 0);
     const currentMonthEnd = new Date();
-    currentMonthEnd.setMonth(currentMonthEnd.getMonth() + 1, 0);
-    currentMonthEnd.setHours(23, 59, 59, 999);
+    currentMonthEnd.setUTCMonth(currentMonthEnd.getUTCMonth() + 1, 0);
+    currentMonthEnd.setUTCHours(23, 59, 59, 999);
 
     const totalSalesThisMonthResult = await orderRepository
       .createQueryBuilder("order")
@@ -413,26 +465,28 @@ router.get("/sales", authMiddleware, async (req, res) => {
         start: currentMonthStart,
         end: currentMonthEnd,
       })
+      .andWhere("order.status = :status", { status: "completed" })
       .getRawOne();
+    console.log("Total Sales This Month Result:", totalSalesThisMonthResult);
 
-    const totalSalesThisMonth = parseFloat(totalSalesThisMonthResult.total || 0);
+    const totalSalesThisMonth = parseFloat(totalSalesThisMonthResult?.total || 0);
 
-    // Average Daily Sales (for the current month)
     const daysInMonth = new Date(
-      currentMonthEnd.getFullYear(),
-      currentMonthEnd.getMonth() + 1,
+      currentMonthEnd.getUTCFullYear(),
+      currentMonthEnd.getUTCMonth() + 1,
       0
-    ).getDate();
+    ).getUTCDate();
     const averageDailySales = totalSalesThisMonth / daysInMonth;
 
-    // Sales by Order Type
     const salesByOrderType = await orderRepository
       .createQueryBuilder("order")
       .select("order.order_type", "order_type")
       .addSelect("SUM(order.final_price)", "total")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy("order.order_type")
       .getRawMany();
+    console.log("Sales By Order Type:", salesByOrderType);
 
     const orderTypeBreakdown = {
       "dine-in": 0,
@@ -441,32 +495,37 @@ router.get("/sales", authMiddleware, async (req, res) => {
     };
 
     salesByOrderType.forEach((item) => {
-      const type = item.order_type.toLowerCase();
+      const type = item.order_type?.toLowerCase() || "";
       if (type in orderTypeBreakdown) {
         orderTypeBreakdown[type] = parseFloat(item.total || 0);
       }
     });
 
-    // Payment Method Breakdown
     const paymentMethodBreakdownResult = await orderRepository
       .createQueryBuilder("order")
       .select("order.payment_method", "payment_method")
       .addSelect("SUM(order.final_price)", "total")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy("order.payment_method")
       .getRawMany();
+    console.log("Payment Method Breakdown Result:", paymentMethodBreakdownResult);
 
     const paymentMethodBreakdown = {
       cash: 0,
       credit_card: 0,
     };
 
-    paymentMethodBreakdownResult.forEach((item) => {
-      const method = item.payment_method.toLowerCase();
-      if (method in paymentMethodBreakdown) {
-        paymentMethodBreakdown[method] = parseFloat(item.total || 0);
-      }
-    });
+    if (Array.isArray(paymentMethodBreakdownResult)) {
+      paymentMethodBreakdownResult.forEach((item) => {
+        const method = item.payment_method?.toLowerCase() || "";
+        if (method in paymentMethodBreakdown) {
+          paymentMethodBreakdown[method] = parseFloat(item.total || 0);
+        }
+      });
+    } else {
+      console.warn("Payment Method Breakdown Result is not an array:", paymentMethodBreakdownResult);
+    }
 
     res.json({
       message: "Sales data retrieved successfully",
@@ -494,176 +553,7 @@ router.get("/sales", authMiddleware, async (req, res) => {
   }
 });
 
-// Endpoint 5: Profits Dashboard Data
-router.get("/profitsdash", authMiddleware, async (req, res) => {
-  try {
-    const orderRepository = AppDataSource.getRepository(Order);
-    const expenseRepository = AppDataSource.getRepository(Expense);
-    const { start_date, end_date, interval = "monthly" } = req.query;
-
-    if (!["daily", "weekly", "monthly", "yearly"].includes(interval)) {
-      return res.status(400).json({ message: "Invalid interval. Use 'daily', 'weekly', 'monthly', or 'yearly'." });
-    }
-
-    const { start, end } = parseDateRange(start_date, end_date, interval);
-
-    console.log("Final start and end (UTC):", { start, end });
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
-    }
-    if (start > end) {
-      return res.status(400).json({ message: "Start date must be before end date." });
-    }
-
-    console.log(`Fetching profits data for ${start} to ${end}, interval: ${interval}`);
-
-    // Total Revenue from Orders
-    const orders = await orderRepository.find({
-      where: { created_at: Between(start, end), status: "completed" },
-    });
-    console.log("Fetched orders:", orders);
-
-    let totalRevenue = 0;
-    for (const order of orders) {
-      const finalPrice = parseFloat(order.final_price) || 0;
-      if (isNaN(finalPrice)) {
-        console.warn(`Invalid final_price for order ID ${order.id}: ${order.final_price}`);
-      }
-      totalRevenue += finalPrice;
-    }
-    console.log("Total revenue:", totalRevenue);
-
-    // Total Expenses
-    const expenses = await expenseRepository.find({
-      where: { created_at: Between(start, end) },
-    });
-    console.log("Fetched expenses:", expenses);
-
-    const totalExpenses = expenses.reduce((sum, expense) => {
-      const amount = parseFloat(expense.amount) || 0;
-      if (isNaN(amount)) {
-        console.warn(`Invalid amount for expense ID ${expense.id}: ${expense.amount}`);
-      }
-      return sum + amount;
-    }, 0);
-    console.log("Total expenses:", totalExpenses);
-
-    // Distribute expenses proportionally to each order based on its revenue contribution
-    const revenueContribution = orders.map((order) => ({
-      order,
-      contribution: totalRevenue > 0 ? (parseFloat(order.final_price) || 0) / totalRevenue : 0,
-    }));
-
-    const ordersWithExpenses = revenueContribution.map(({ order, contribution }) => ({
-      order,
-      allocatedExpense: contribution * totalExpenses,
-    }));
-    console.log("Orders with expenses:", ordersWithExpenses);
-
-    // Calculate profit per month using raw query to avoid TypeORM query builder issues
-    const dateFormat = interval === "daily" ? "DATE(created_at)" :
-                     interval === "weekly" ? "DATE_FORMAT(created_at, '%Y-%U')" :
-                     interval === "monthly" ? "DATE_FORMAT(created_at, '%Y-%m')" :
-                     "DATE_FORMAT(created_at, '%Y')";
-
-    const profitOverview = await AppDataSource.manager.query(
-      `SELECT ${dateFormat} AS date, SUM(final_price) AS revenue
-       FROM orders
-       WHERE created_at BETWEEN ? AND ?
-       AND status = ?
-       GROUP BY ${dateFormat}
-       ORDER BY date ASC`,
-      [start, end, "completed"]
-    );
-    console.log("Profit overview:", profitOverview);
-
-    // Calculate expenses per month
-    const expenseByMonth = await AppDataSource.manager.query(
-      `SELECT ${dateFormat} AS date, SUM(amount) AS expense
-       FROM expenses
-       WHERE created_at BETWEEN ? AND ?
-       GROUP BY ${dateFormat}
-       ORDER BY date ASC`,
-      [start, end]
-    );
-    console.log("Expenses by month:", expenseByMonth);
-
-    // Merge revenue and expenses to calculate profit per month
-    const profitByMonth = profitOverview.map((entry) => {
-      const expenseEntry = expenseByMonth.find((exp) => exp.date === entry.date) || { expense: 0 };
-      const profit = (parseFloat(entry.revenue) || 0) - (parseFloat(expenseEntry.expense) || 0);
-      return {
-        date: entry.date,
-        profit: profit > 0 ? profit : 0,
-      };
-    });
-    console.log("Profit by month:", profitByMonth);
-
-    // Total Profit This Month
-    const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
-    currentMonthStart.setHours(0, 0, 0, 0);
-    const currentMonthEnd = new Date();
-    currentMonthEnd.setMonth(currentMonthEnd.getMonth() + 1, 0);
-    currentMonthEnd.setHours(23, 59, 59, 999);
-
-    const currentMonthOrders = await orderRepository.find({
-      where: {
-        created_at: Between(currentMonthStart, currentMonthEnd),
-        status: "completed",
-      },
-    });
-    console.log("Current month orders:", currentMonthOrders);
-
-    let currentMonthRevenue = 0;
-    for (const order of currentMonthOrders) {
-      const finalPrice = parseFloat(order.final_price) || 0;
-      if (isNaN(finalPrice)) {
-        console.warn(`Invalid final_price for current month order ID ${order.id}: ${order.final_price}`);
-      }
-      currentMonthRevenue += finalPrice;
-    }
-
-    const currentMonthExpenses = await expenseRepository.find({
-      where: { created_at: Between(currentMonthStart, currentMonthEnd) },
-    });
-    console.log("Current month expenses:", currentMonthExpenses);
-
-    const currentMonthTotalExpenses = currentMonthExpenses.reduce((sum, expense) => {
-      const amount = parseFloat(expense.amount) || 0;
-      if (isNaN(amount)) {
-        console.warn(`Invalid amount for current month expense ID ${expense.id}: ${expense.amount}`);
-      }
-      return sum + amount;
-    }, 0);
-
-    const totalProfitThisMonth = currentMonthRevenue - currentMonthTotalExpenses;
-
-    // Highest Profit (max profit in any month)
-    const highestProfit = profitByMonth.reduce(
-      (max, entry) => Math.max(max, parseFloat(entry.profit) || 0),
-      0
-    );
-
-    res.json({
-      message: "Profits data retrieved successfully",
-      data: {
-        profit_overview: profitByMonth.map((entry) => ({
-          date: entry.date,
-          profit: parseFloat(entry.profit || 0).toFixed(2),
-        })),
-        total_profit_this_month: totalProfitThisMonth > 0 ? totalProfitThisMonth.toFixed(2) : "0.00",
-        highest_profit: highestProfit.toFixed(2),
-      },
-    });
-  } catch (error) {
-    console.error("Error in /profitsdash endpoint:", error.stack);
-    res.status(500).json({ message: "Error fetching profits data", error: error.message });
-  }
-});
-
-// Endpoint 6: Expenses Dashboard Data
+// Endpoint 5: Expenses Dashboard Data
 router.get("/expenses", authMiddleware, async (req, res) => {
   try {
     const expenseRepository = AppDataSource.getRepository(Expense);
@@ -684,7 +574,6 @@ router.get("/expenses", authMiddleware, async (req, res) => {
 
     console.log(`Fetching expenses data for ${start} to ${end}, interval: ${interval}`);
 
-    // 1. Expenses over time by category
     const dateFormat = getDateFormat(interval, "expense");
     const expensesOverTimeQuery = await expenseRepository
       .createQueryBuilder("expense")
@@ -698,7 +587,6 @@ router.get("/expenses", authMiddleware, async (req, res) => {
       .orderBy("date", "ASC")
       .getRawMany();
 
-    // Transform the data into the desired format
     const expensesOverTime = [];
     const dates = [...new Set(expensesOverTimeQuery.map((entry) => entry.date))];
     dates.forEach((date) => {
@@ -710,7 +598,6 @@ router.get("/expenses", authMiddleware, async (req, res) => {
       expensesOverTime.push(entry);
     });
 
-    // 2. Total expenses by category
     const expenseCategories = await expenseRepository
       .createQueryBuilder("expense")
       .leftJoin("expense.category", "category")
@@ -720,10 +607,9 @@ router.get("/expenses", authMiddleware, async (req, res) => {
       .groupBy("category.name")
       .getRawMany();
 
-    // 3. Total expenses this month
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const startOfMonth = new Date(now.getUTCFullYear(), now.getUTCMonth(), 1);
+    const endOfMonth = new Date(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999);
     const totalExpensesThisMonth = await expenseRepository
       .createQueryBuilder("expense")
       .select("SUM(expense.total_amount)", "total")
@@ -738,7 +624,7 @@ router.get("/expenses", authMiddleware, async (req, res) => {
           name: category.name || "Uncategorized",
           amount: parseFloat(category.amount || 0).toFixed(2),
         })),
-        total_expenses_this_month: parseFloat(totalExpensesThisMonth.total || 0).toFixed(2),
+        total_expenses_this_month: parseFloat(totalExpensesThisMonth?.total || 0).toFixed(2),
       },
     });
   } catch (error) {
@@ -747,11 +633,11 @@ router.get("/expenses", authMiddleware, async (req, res) => {
   }
 });
 
-// Endpoint 7: Orders Dashboard Data
+// Endpoint 6: Orders Dashboard Data
 router.get("/orders", authMiddleware, async (req, res) => {
   try {
     const orderRepository = AppDataSource.getRepository(Order);
-    const orderItemRepository = AppDataSource.getRepository(OrderItem); // Assuming an OrderItem entity exists
+    const orderItemRepository = AppDataSource.getRepository(OrderItem);
     const { start_date, end_date, interval = "monthly" } = req.query;
 
     if (!["daily", "weekly", "monthly", "yearly"].includes(interval)) {
@@ -769,18 +655,17 @@ router.get("/orders", authMiddleware, async (req, res) => {
 
     console.log(`Fetching orders data for ${start} to ${end}, interval: ${interval}`);
 
-    // 1. Orders over time
     const dateFormat = getDateFormat(interval, "order");
     const ordersOverTime = await orderRepository
       .createQueryBuilder("order")
       .select(dateFormat, "date")
       .addSelect("COUNT(order.id)", "orders")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy(dateFormat)
       .orderBy("date", "ASC")
       .getRawMany();
 
-    // 2. Top-selling products (top 5 by quantity sold)
     const topSellingProducts = await orderItemRepository
       .createQueryBuilder("orderItem")
       .leftJoin("orderItem.order", "order")
@@ -788,13 +673,13 @@ router.get("/orders", authMiddleware, async (req, res) => {
       .select("product.name", "product_name")
       .addSelect("SUM(orderItem.quantity)", "quantity_sold")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy("product.id")
       .addGroupBy("product.name")
       .orderBy("quantity_sold", "DESC")
       .limit(5)
       .getRawMany();
 
-    // 3. Least-selling products (bottom 5 by quantity sold)
     const leastSellingProducts = await orderItemRepository
       .createQueryBuilder("orderItem")
       .leftJoin("orderItem.order", "order")
@@ -802,6 +687,7 @@ router.get("/orders", authMiddleware, async (req, res) => {
       .select("product.name", "product_name")
       .addSelect("SUM(orderItem.quantity)", "quantity_sold")
       .where("order.created_at BETWEEN :start AND :end", { start, end })
+      .andWhere("order.status = :status", { status: "completed" })
       .groupBy("product.id")
       .addGroupBy("product.name")
       .orderBy("quantity_sold", "ASC")
