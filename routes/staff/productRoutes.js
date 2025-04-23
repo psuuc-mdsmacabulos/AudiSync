@@ -107,6 +107,7 @@ router.post("/", upload.single('image'), async (req, res) => {
         product.price = price;
         product.quantity = quantity;
         product.category = category || null;
+        product.is_active = quantity > 0; // Set initial active status based on quantity
 
         // Handle image upload or URL
         if (req.file) {
@@ -136,7 +137,7 @@ router.post("/", upload.single('image'), async (req, res) => {
     } catch (error) {
         console.error("Error saving product:", error.message);
         
-        // ✅ Delete file if an error occurs
+        // Delete file if an error occurs
         if (req.file) {
             try {
                 fs.unlinkSync(req.file.path);
@@ -257,7 +258,11 @@ router.put("/update/:id", authMiddleware, upload.single('image'), async (req, re
         if (name !== undefined) product.name = name;
         if (description !== undefined) product.description = description;
         if (price !== undefined && !isNaN(price) && price >= 0) product.price = parseFloat(price);
-        if (quantity !== undefined && !isNaN(quantity) && quantity >= 0) product.quantity = parseInt(quantity);
+        if (quantity !== undefined && !isNaN(quantity) && quantity >= 0) {
+            product.quantity = parseInt(quantity);
+            // Automatically disable product if quantity is 0
+            product.is_active = quantity > 0 ? product.is_active : false;
+        }
         if (is_active !== undefined) product.is_active = is_active;
 
         // Handle image update (either file upload or URL)
@@ -296,6 +301,46 @@ router.put("/update/:id", authMiddleware, upload.single('image'), async (req, re
 
         // Improved error handling
         res.status(500).json({ message: `Error updating product: ${error.message}` });
+    }
+});
+
+// New endpoint to toggle product active status
+router.put("/toggle-active/:id", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const productRepository = AppDataSource.getRepository(Product);
+        const product = await productRepository.findOne({ where: { id: parseInt(id) } });
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        // Toggle the is_active status
+        product.is_active = !product.is_active;
+        product.updated_by = `${req.user.first_name} ${req.user.last_name}`;
+        product.updated_at = new Date();
+
+        // If product is being disabled and has stock, allow manual override
+        // If product is being enabled but has no stock, prevent it
+        if (product.is_active && product.quantity <= 0) {
+            return res.status(400).json({ 
+                message: "Cannot enable product with zero quantity" 
+            });
+        }
+
+        await productRepository.save(product);
+
+        res.json({
+            message: `Product ${product.is_active ? 'enabled' : 'disabled'} successfully`,
+            product,
+            updated_by: `${req.user.first_name} ${req.user.last_name}`,
+        });
+    } catch (error) {
+        console.error("Error toggling product status:", error.message);
+        res.status(500).json({ 
+            message: `Error toggling product status: ${error.message}` 
+        });
     }
 });
 
@@ -340,7 +385,7 @@ router.get("/active", async (req, res) => {
     }
 });
 
-// Get all active products (is_active)
+// Get all inactive products (is_active)
 router.get("/inactive", async (req, res) => {
     try {
         const productRepository = AppDataSource.getRepository(Product);
