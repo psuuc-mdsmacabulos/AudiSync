@@ -15,6 +15,8 @@ import expensesCategoryRoutes from "./routes/staff/expensesCategoryRoutes.js";
 import createUser from "./routes/admin/createUser.js";
 import analyticRoutes from "./routes/admin/analyticRoutes.js";
 
+// Dev Routes
+import supportRoutes from "./routes/devs/supportRoutes.js";
 
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
@@ -53,7 +55,9 @@ app.use("/api/discounts", discountRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/expensescategory", expensesCategoryRoutes);
 app.use("/api/analytics", analyticRoutes);
+app.use("/api/support", supportRoutes);
 app.use('/uploads', express.static(path.join('public', 'uploads')));
+app.use("/videos", express.static(path.join(process.cwd(), "uploads", "videos")));
 
 
 const PORT = process.env.PORT || 6000;
