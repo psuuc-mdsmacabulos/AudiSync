@@ -55,3 +55,5 @@ router.delete("/categories/:id", authMiddleware, deleteCategory);
 router.put("/restore/:id", restoreProduct);
 
 export default router;
+
+//

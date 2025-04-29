@@ -21,3 +21,5 @@ router.put("/:id", authMiddleware, updateExpenseCategory);
 router.delete("/:id", authMiddleware, deleteExpenseCategory);
 
 export default router;
+
+//

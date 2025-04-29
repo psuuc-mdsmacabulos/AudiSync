@@ -2,6 +2,8 @@ import { AppDataSource } from "../../config/data-source.js";
 import Discount from "../../dist/discounts.js";
 import Product from "../../dist/products.js";
 
+//
+
 export const getAllDiscounts = async (req, res) => {
   try {
     const discountRepository = AppDataSource.getRepository(Discount);

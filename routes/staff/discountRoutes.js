@@ -21,3 +21,5 @@ router.put("/:id", authMiddleware, updateDiscount);
 router.patch("/:id/status", authMiddleware, toggleDiscountStatus);
 
 export default router;
+
+//

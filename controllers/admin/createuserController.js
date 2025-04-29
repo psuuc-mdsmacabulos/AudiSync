@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { AppDataSource } from "../../config/data-source.js";
 import User from "../../dist/user.js";
 
+//
+
 export const registerUser = async (req, res) => {
     const { email, first_name, last_name, password, role } = req.body;
 

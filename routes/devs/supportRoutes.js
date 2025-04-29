@@ -46,3 +46,5 @@ router.delete("/faqs/:id", deleteFAQ);
 router.get("/popular-articles", getPopularArticles);
 
 export default router;
+
+//

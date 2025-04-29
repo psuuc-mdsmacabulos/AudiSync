@@ -7,6 +7,8 @@ import Discount from "../../dist/discounts.js";
 import OrderItem from "../../dist/order_item.js";
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from "typeorm";
 
+//
+
 // Helper function to get active discount for a product
 const getActiveDiscount = async (productId, discountRepository, currentDate) => {
     return await discountRepository.findOne({

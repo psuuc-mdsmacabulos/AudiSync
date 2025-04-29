@@ -21,3 +21,5 @@ router.get("/sales", authMiddleware, getSalesData);
 router.get("/orders", authMiddleware, getOrdersData);
 
 export default router;
+
+//

@@ -2,6 +2,8 @@ import { AppDataSource } from "../../config/data-source.js";
 import ExpenseCategory from "../../dist/expenseCategory.js";
 import { Like } from "typeorm";
 
+//
+
 export const createExpenseCategory = async (req, res) => {
     try {
         const categoryRepository = AppDataSource.getRepository(ExpenseCategory);

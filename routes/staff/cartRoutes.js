@@ -13,3 +13,5 @@ router.delete("/remove/:cartItemId", authMiddleware, removeFromCart);
 router.post("/checkout", authMiddleware, checkout);
 
 export default router;
+
+//
