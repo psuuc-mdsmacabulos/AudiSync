@@ -13,6 +13,8 @@ import ExpenseCategory from "../dist/expenseCategory.js";
 import SupportArticle from "../dist/supportArticle.js";
 import SupportCategory from "../dist/supportcategory.js";
 import FAQ from "../dist/faq.js";
+import AccountLog from "../dist/accountLog.js";
+import AuditLog from "../dist/auditLog.js";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ export const AppDataSource = new DataSource({
     SupportArticle,
     SupportCategory,
     FAQ,
+    AccountLog,
+    AuditLog
   ],
   synchronize: true,
 });

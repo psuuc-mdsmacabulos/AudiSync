@@ -4,8 +4,6 @@ import OrderItem from "../../dist/order_item.js";
 import Expense from "../../dist/expenses.js";
 import { Between } from "typeorm";
 
-//
-
 const parseDateRange = (start_date, end_date, interval) => {
   let start = start_date ? new Date(`${start_date}T00:00:00.000Z`) : new Date();
   let end = end_date ? new Date(`${end_date}T23:59:59.999Z`) : new Date();
@@ -25,8 +23,8 @@ const parseDateRange = (start_date, end_date, interval) => {
     console.log("Adjusted end (default):", end);
   }
 
-  // Cap the end date at the current date (Apr 22, 2025)
-  const currentDate = new Date("2025-04-22T23:59:59.999Z");
+  // Cap the end date at the actual current date
+  const currentDate = new Date(); // Current date: May 2, 2025
   if (end > currentDate) {
     end = currentDate;
     console.log("Adjusted end (capped at current date):", end);
@@ -60,8 +58,7 @@ const generatePeriods = (start, end, interval) => {
       current.setDate(current.getDate() + 1);
     }
   } else if (interval === "weekly") {
-    // Adjust start to the first Monday on or after the start date
-    while (current.getUTCDay() !== 1) { // Monday is 1
+    while (current.getUTCDay() !== 1) {
       current.setDate(current.getDate() + 1);
     }
     while (current <= end) {
@@ -72,16 +69,14 @@ const generatePeriods = (start, end, interval) => {
       firstMonday.setDate(firstDayOfYear.getDate() + daysOffset);
       const daysSinceFirstMonday = Math.floor((current - firstMonday) / (1000 * 60 * 60 * 24));
       let weekNumber = Math.floor(daysSinceFirstMonday / 7) + 1;
-      // Prevent negative or zero week numbers
       if (weekNumber <= 0) {
         weekNumber = 1;
       }
-      // Adjust year if the week crosses into the previous or next year
       let periodYear = year;
       if (current.getUTCMonth() === 0 && weekNumber > 50) {
-        periodYear = year - 1; // Week belongs to the previous year
+        periodYear = year - 1;
       } else if (current.getUTCMonth() === 11 && weekNumber === 1) {
-        periodYear = year + 1; // Week belongs to the next year
+        periodYear = year + 1;
       }
       periods.push(`${periodYear}-${weekNumber.toString().padStart(2, "0")}`);
       current.setDate(current.getDate() + 7);
@@ -125,7 +120,6 @@ export const getOverview = async (req, res) => {
 
     console.log(`Fetching overview statistics for ${start} to ${end}, interval: ${interval}`);
 
-    // Fetch all orders to debug status values
     const allOrders = await orderRepository
       .createQueryBuilder("order")
       .select(["order.id", "order.status", "order.final_price", "order.created_at"])
@@ -352,10 +346,11 @@ export const getProfitsDash = async (req, res) => {
 
     const totalProfits = totalSales - totalExpenses;
 
-    const currentMonthStart = new Date(2025, 3, 1);
-    currentMonthStart.setHours(0, 0, 0, 0);
-    const currentMonthEnd = new Date(2025, 3, 22);
-    currentMonthEnd.setHours(23, 59, 59, 999);
+    const currentMonthStart = new Date();
+    currentMonthStart.setUTCDate(1);
+    currentMonthStart.setUTCHours(0, 0, 0, 0);
+    const currentMonthEnd = new Date();
+    currentMonthEnd.setUTCHours(23, 59, 59, 999);
 
     const currentMonthOrders = await orderRepository
       .createQueryBuilder("order")
@@ -364,7 +359,7 @@ export const getProfitsDash = async (req, res) => {
       .andWhere("order.status = :status", { status: "completed" })
       .getRawOne();
     const currentMonthRevenue = parseFloat(currentMonthOrders?.total || 0);
-    console.log("Current Month Orders (Apr 2025):", currentMonthOrders, "Revenue:", currentMonthRevenue);
+    console.log("Current Month Orders (May 2025):", currentMonthOrders, "Revenue:", currentMonthRevenue);
 
     const currentMonthExpenses = await expenseRepository
       .createQueryBuilder("expense")
@@ -372,7 +367,7 @@ export const getProfitsDash = async (req, res) => {
       .where("expense.created_at BETWEEN :start AND :end", { start: currentMonthStart, end: currentMonthEnd })
       .getRawOne();
     const currentMonthTotalExpenses = parseFloat(currentMonthExpenses?.total || 0);
-    console.log("Current Month Expenses (Apr 2025):", currentMonthExpenses, "Total:", currentMonthTotalExpenses);
+    console.log("Current Month Expenses (May 2025):", currentMonthExpenses, "Total:", currentMonthTotalExpenses);
 
     const totalProfitThisMonth = currentMonthRevenue - currentMonthTotalExpenses;
 
@@ -425,7 +420,6 @@ export const getSales = async (req, res) => {
 
     console.log(`Fetching sales data for ${start.toISOString()} to ${end.toISOString()}, interval: ${interval}`);
 
-    // Debug: Fetch all orders in the date range to check status
     const allOrders = await orderRepository
       .createQueryBuilder("order")
       .select(["order.id", "order.status", "order.final_price", "order.created_at", "order.order_type", "order.payment_method"])

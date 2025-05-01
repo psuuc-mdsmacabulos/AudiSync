@@ -11,9 +11,11 @@ import discountRoutes from "./routes/staff/discountRoutes.js";
 import expensesRoutes from "./routes/staff/expensesRoutes.js";
 import expensesCategoryRoutes from "./routes/staff/expensesCategoryRoutes.js";
 
+
 // Admin Routes
 import createUser from "./routes/admin/createUser.js";
 import analyticRoutes from "./routes/admin/analyticRoutes.js";
+import auditRoutes from "./routes/admin/auditRoutes.js";
 
 // Dev Routes
 import supportRoutes from "./routes/devs/supportRoutes.js";
@@ -56,6 +58,7 @@ app.use("/api/expenses", expensesRoutes);
 app.use("/api/expensescategory", expensesCategoryRoutes);
 app.use("/api/analytics", analyticRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/audit", auditRoutes);
 app.use('/uploads', express.static(path.join('public', 'uploads')));
 app.use("/videos", express.static(path.join(process.cwd(), "uploads", "videos")));
 

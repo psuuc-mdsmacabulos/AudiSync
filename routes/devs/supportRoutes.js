@@ -1,4 +1,5 @@
 import { Router } from "express";
+import authMiddleware from "../../middlewares/authMiddleware.js";
 import {
     createSupportCategory,
     getAllSupportCategories,
@@ -22,28 +23,28 @@ import {
 const router = Router();
 
 // Support Category Routes
-router.post("/categories", createSupportCategory);
-router.get("/categories", getAllSupportCategories);
-router.get("/categories/:id", getSupportCategoryById);
-router.put("/categories/:id", updateSupportCategory);
-router.delete("/categories/:id", deleteSupportCategory);
+router.post("/categories", authMiddleware, createSupportCategory);
+router.get("/categories", authMiddleware, getAllSupportCategories);
+router.get("/categories/:id", authMiddleware, getSupportCategoryById);
+router.put("/categories/:id", authMiddleware, updateSupportCategory);
+router.delete("/categories/:id", authMiddleware, deleteSupportCategory);
 
 // Support Article Routes
-router.post("/articles", upload.single("video"), createSupportArticle);
-router.get("/articles", getAllSupportArticles);
-router.get("/articles/:id", getSupportArticleById);
-router.put("/articles/:id", upload.single("video"), updateSupportArticle);
-router.delete("/articles/:id", deleteSupportArticle);
+router.post("/articles", authMiddleware, upload.single("video"), createSupportArticle);
+router.get("/articles", authMiddleware, getAllSupportArticles);
+router.get("/articles/:id", authMiddleware, getSupportArticleById);
+router.put("/articles/:id", authMiddleware, upload.single("video"), updateSupportArticle);
+router.delete("/articles/:id", authMiddleware, deleteSupportArticle);
 
 // FAQ Routes
-router.post("/faqs", createFAQ);
-router.get("/faqs", getAllFAQs);
-router.get("/faqs/:id", getFAQById);
-router.put("/faqs/:id", updateFAQ);
-router.delete("/faqs/:id", deleteFAQ);
+router.post("/faqs", authMiddleware, createFAQ);
+router.get("/faqs", authMiddleware, getAllFAQs);
+router.get("/faqs/:id", authMiddleware, getFAQById);
+router.put("/faqs/:id", authMiddleware, updateFAQ);
+router.delete("/faqs/:id", authMiddleware, deleteFAQ);
 
 // Popular Articles Route
-router.get("/popular-articles", getPopularArticles);
+router.get("/popular-articles", authMiddleware, getPopularArticles);
 
 export default router;
 

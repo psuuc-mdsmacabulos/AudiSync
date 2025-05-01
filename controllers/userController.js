@@ -1,11 +1,9 @@
-// userController.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../config/data-source.js";
 import User from "../dist/user.js";
+import AccountLog from "../dist/accountLog.js"; // Import AccountLog
 import nodemailer from "nodemailer";
-
-//
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -50,6 +48,16 @@ export const login = async (req, res) => {
 
         const accessToken = generateAccessToken(user);
         const refreshToken = generateRefreshToken(user);
+
+        // Create an AccountLog entry for login
+        const accountLogRepository = AppDataSource.getRepository(AccountLog);
+        const accountLog = accountLogRepository.create({
+            action: "Logged in",
+            details: `User logged in with email: ${email}`,
+            performed_by: user,
+            created_at: new Date(),
+        });
+        await accountLogRepository.save(accountLog);
 
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
@@ -203,6 +211,23 @@ export const refreshToken = async (req, res) => {
 
 export const logout = (req, res) => {
     try {
+        // Create an AccountLog entry for logout
+        const userRepository = AppDataSource.getRepository(User);
+        const accountLogRepository = AppDataSource.getRepository(AccountLog);
+        
+        // Since req.user contains userId, first_name, last_name, role from the JWT
+        const user = { id: req.user.userId }; // We only need the ID for the relation
+        
+        const accountLog = accountLogRepository.create({
+            action: "Logged out",
+            details: `User logged out`,
+            performed_by: user,
+            created_at: new Date(),
+        });
+        accountLogRepository.save(accountLog).catch(err => {
+            console.error("Error saving logout log:", err);
+        });
+
         res.clearCookie("accessToken");
         res.clearCookie("refreshToken");
         res.json({ message: "Logged out successfully" });
