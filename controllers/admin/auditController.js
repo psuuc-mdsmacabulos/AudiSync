@@ -1,10 +1,8 @@
 import { AppDataSource } from "../../config/data-source.js";
 import { In, ILike } from "typeorm";
-import FAQ from "../../dist/faq.js";
 import Product from "../../dist/products.js";
 import SupportArticle from "../../dist/supportArticle.js";
 import User from "../../dist/user.js";
-import SupportCategory from "../../dist/supportcategory.js";
 import AccountLog from "../../dist/accountLog.js";
 import Expense from "../../dist/expenses.js";
 
@@ -65,49 +63,21 @@ const formatDate = (date, context = "unknown") => {
 
 const getAuditLogs = async (req, res) => {
     try {
-        const faqRepository = AppDataSource.getRepository(FAQ);
         const productRepository = AppDataSource.getRepository(Product);
         const supportArticleRepository = AppDataSource.getRepository(SupportArticle);
         const userRepository = AppDataSource.getRepository(User);
-        const supportCategoryRepository = AppDataSource.getRepository(SupportCategory);
         const expenseRepository = AppDataSource.getRepository(Expense);
 
-        const [faqs, products, supportArticles, users, supportCategories, expenses] = await Promise.all([
-            faqRepository.find({ order: { created_at: "DESC" }, take: 50 }),
+        const [products, supportArticles, users, expenses] = await Promise.all([
             productRepository.find({ order: { created_at: "DESC" }, take: 50 }),
             supportArticleRepository.find({ order: { created_at: "DESC" }, take: 50 }),
             userRepository.find({ order: { created_at: "DESC" }, take: 50 }),
-            supportCategoryRepository.find({ order: { created_at: "DESC" }, take: 50 }),
             expenseRepository.find({ 
                 order: { created_at: "DESC" }, 
                 take: 50, 
                 relations: ["recorded_by"]
             })
         ]);
-
-        const faqLogs = (await Promise.all(
-            faqs.map(async faq => {
-                const createdDate = formatDate(faq.created_at, `FAQ created_at (ID: ${faq.id})`);
-                const updatedDate = formatDate(faq.updated_at, `FAQ updated_at (ID: ${faq.id})`);
-                if (!createdDate) return [];
-                return [
-                    {
-                        date_time: createdDate,
-                        user: await fetchUserFullName(faq.created_by, req.user),
-                        action: "Created",
-                        category: "FAQ",
-                        details: `Question: ${faq.question || "N/A"}`
-                    },
-                    updatedDate && updatedDate !== createdDate ? {
-                        date_time: updatedDate,
-                        user: await fetchUserFullName(faq.updated_by, req.user),
-                        action: "Updated",
-                        category: "FAQ",
-                        details: `Question: ${faq.question || "N/A"}`
-                    } : null
-                ].filter(log => log);
-            })
-        )).flat();
 
         const productLogs = (await Promise.all(
             products.map(async product => {
@@ -197,30 +167,6 @@ const getAuditLogs = async (req, res) => {
             })
         )).flat();
 
-        const supportCategoryLogs = (await Promise.all(
-            supportCategories.map(async category => {
-                const createdDate = formatDate(category.created_at, `SupportCategory created_at (ID: ${category.id})`);
-                const updatedDate = formatDate(category.updated_at, `SupportCategory updated_at (ID: ${category.id})`);
-                if (!createdDate) return [];
-                return [
-                    {
-                        date_time: createdDate,
-                        user: await fetchUserFullName(category.created_by, req.user),
-                        action: "Created",
-                        category: "SupportCategory",
-                        details: `Name: ${category.name || "N/A"}`
-                    },
-                    updatedDate && updatedDate !== createdDate ? {
-                        date_time: updatedDate,
-                        user: await fetchUserFullName(category.updated_by, req.user),
-                        action: "Updated",
-                        category: "SupportCategory",
-                        details: `Name: ${category.name || "N/A"}`
-                    } : null
-                ].filter(log => log);
-            })
-        )).flat();
-
         const expenseLogs = (await Promise.all(
             expenses.map(async expense => {
                 const createdDate = formatDate(expense.created_at, `Expense created_at (ID: ${expense.id})`);
@@ -246,11 +192,9 @@ const getAuditLogs = async (req, res) => {
         )).flat();
 
         const allLogs = [
-            ...faqLogs,
             ...productLogs,
             ...supportArticleLogs,
             ...userLogs,
-            ...supportCategoryLogs,
             ...expenseLogs
         ].sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
 
