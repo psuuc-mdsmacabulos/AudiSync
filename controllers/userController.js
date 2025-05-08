@@ -40,9 +40,30 @@ export const login = async (req, res) => {
 
     try {
         const userRepository = AppDataSource.getRepository(User);
-        const user = await userRepository.findOne({ where: { email } });
+        const user = await userRepository.findOne({
+            where: { email },
+            select: ["id", "first_name", "last_name", "email", "password", "role", "is_active", "deleted_at"]
+        });
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        console.log("User fetched:", user); // Debug: Log the full user object
+
+        if (!user) {
+            return res.status(404).json({ message: "Account unrecognized" });
+        }
+
+        // Check if the account is soft-deleted
+        if (user.deleted_at) {
+            console.log("Soft-deleted account detected:", user.email); // Debug
+            return res.status(404).json({ message: "Account unrecognized" });
+        }
+
+        // Check if the account is deactivated
+        if (user.is_active === false) {
+            console.log("Deactivated account detected:", user.email, "is_active:", user.is_active); // Debug
+            return res.status(403).json({ message: "Account deactivated" });
+        }
+
+        if (!(await bcrypt.compare(password, user.password))) {
             return res.status(400).json({ message: "Invalid credentials" });
         }
 

@@ -47,7 +47,7 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-app.use("/api", createUser);
+app.use("/api/auth", createUser);
 app.use("/api/auth", userRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
